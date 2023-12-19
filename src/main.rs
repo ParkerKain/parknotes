@@ -1,10 +1,15 @@
 use std::fs::create_dir_all;
+use std::fs::read_dir;
 use std::path::PathBuf;
 
 /// Represents all settings the user can set
 struct Config {
     /// Where everything will be stored locally
     root_dir: PathBuf,
+}
+
+struct Note {
+    path: PathBuf,
 }
 
 /// Returns if the root dir exists already
@@ -31,6 +36,23 @@ fn create_root_folder(config: &Config) {
     println!("{} directory created!", config.root_dir.display());
 }
 
+/// Creates the core notes vector from the root directory
+///
+/// # Arguments
+///
+/// * `config` - a reference to a config object
+fn create_note_objects(config: &Config) -> Vec<Note> {
+    let contents = read_dir(&config.root_dir).unwrap();
+    let mut notes: Vec<Note> = Vec::new();
+    for curr in contents {
+        let curr_note = Note {
+            path: curr.unwrap().path(),
+        };
+        notes.push(curr_note)
+    }
+    return notes;
+}
+
 fn main() {
     println!("Welcome to clife!");
 
@@ -42,6 +64,10 @@ fn main() {
         println!("No clife folder detected at {}", config.root_dir.display());
         create_root_folder(&config);
     }
+
+    let notes = create_note_objects(&config);
+    println!("Found {} notes", notes.len());
+
 }
 
 #[cfg(test)]
