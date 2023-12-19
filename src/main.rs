@@ -1,5 +1,6 @@
 use std::fs::create_dir_all;
 use std::fs::read_dir;
+use std::path::Path;
 use std::path::PathBuf;
 
 /// Represents all settings the user can set
@@ -8,6 +9,8 @@ struct Config {
     root_dir: PathBuf,
 }
 
+/// Represents a single note files
+#[derive(Debug)]
 struct Note {
     path: PathBuf,
 }
@@ -42,15 +45,23 @@ fn create_root_folder(config: &Config) {
 ///
 /// * `config` - a reference to a config object
 fn create_note_objects(config: &Config) -> Vec<Note> {
-    let contents = read_dir(&config.root_dir).unwrap();
     let mut notes: Vec<Note> = Vec::new();
-    for curr in contents {
-        let curr_note = Note {
-            path: curr.unwrap().path(),
-        };
-        notes.push(curr_note)
-    }
+    _get_dir_notes(&config.root_dir, &mut notes);
     return notes;
+}
+
+fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>) {
+    let contents = read_dir(base).unwrap();
+    for curr in contents {
+        let curr_file = curr.expect("Failed to read");
+        let curr_path = curr_file.path();
+        if curr_path.is_dir() {
+            _get_dir_notes(&curr_path, notes);
+        } else {
+            let curr_note = Note { path: curr_path };
+            notes.push(curr_note)
+        }
+    }
 }
 
 fn main() {
@@ -67,7 +78,6 @@ fn main() {
 
     let notes = create_note_objects(&config);
     println!("Found {} notes", notes.len());
-
 }
 
 #[cfg(test)]
@@ -90,5 +100,16 @@ mod tests {
         };
         let result: bool = detect_root_folder(&config);
         assert_eq!(result, false)
+    }
+
+    #[test]
+    fn test_create_note_objects() {
+        let config = Config {
+            root_dir: PathBuf::from(
+                "/home/parker/Documents/projects/clife/clife/test_data/.clife/",
+            ),
+        };
+        let result: Vec<Note> = create_note_objects(&config);
+        assert_eq!(result.len(), 3);
     }
 }
