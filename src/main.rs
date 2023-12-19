@@ -1,7 +1,9 @@
 use std::fs::create_dir_all;
 use std::fs::read_dir;
+use std::fs::File;
 use std::io::stdin;
 use std::path::PathBuf;
+use std::process::exit;
 
 /// Represents all settings the user can set
 struct Config {
@@ -13,6 +15,11 @@ struct Config {
 #[derive(Debug)]
 struct Note {
     path: PathBuf,
+}
+
+#[derive(Debug)]
+enum Action {
+    Create,
 }
 
 /// Returns if the root dir exists already
@@ -65,7 +72,7 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>) {
 }
 
 /// Prompts the user for the action they want to take
-fn prompt_for_action() {
+fn prompt_for_action() -> Action {
     let mut input = String::new();
     while input.trim() != "c" {
         input = String::new();
@@ -73,6 +80,25 @@ fn prompt_for_action() {
         println!("Options are ... \n\t - (c)reate");
         stdin().read_line(&mut input).expect("Failed to read line");
     }
+    return Action::Create;
+}
+
+fn create_new_note(config: &Config, note_suffix: usize) {
+    let mut note_path = PathBuf::from(&config.root_dir);
+    let mut note_name = String::from("new_note_");
+    note_name.push_str(&note_suffix.to_string());
+    note_name.push_str(".md");
+    note_path.push(&note_name);
+    if note_path.exists() {
+        println!("{} already exists, cancelling ...", note_name);
+        exit(0);
+    }
+    let _ = File::create(&note_path);
+    let status = std::process::Command::new("nvim")
+        .arg("/home/parker/Documents/projects/clife/clife/src/main.rs")
+        .status();
+
+    println!("New note created: {}", note_name);
 }
 
 fn main() {
@@ -91,7 +117,11 @@ fn main() {
     println!("Found {} notes", notes.len());
 
     let action = prompt_for_action();
-    println!("Taking action: {:?}", action);
+
+    match action {
+        Action::Create => create_new_note(&config, notes.len()),
+        _ => println!("Unknown action"),
+    }
 }
 
 #[cfg(test)]
