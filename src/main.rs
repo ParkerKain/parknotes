@@ -83,7 +83,7 @@ fn prompt_for_action() -> Action {
     return Action::Create;
 }
 
-fn create_new_note(config: &Config, note_suffix: usize) {
+fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
     let mut note_path = PathBuf::from(&config.root_dir);
     let mut note_name = String::from("new_note_");
     note_name.push_str(&note_suffix.to_string());
@@ -94,11 +94,9 @@ fn create_new_note(config: &Config, note_suffix: usize) {
         exit(0);
     }
     let _ = File::create(&note_path);
-    let status = std::process::Command::new("nvim")
-        .arg("/home/parker/Documents/projects/clife/clife/src/main.rs")
-        .status();
 
     println!("New note created: {}", note_name);
+    return note_path;
 }
 
 fn main() {
@@ -119,7 +117,12 @@ fn main() {
     let action = prompt_for_action();
 
     match action {
-        Action::Create => create_new_note(&config, notes.len()),
+        Action::Create => {
+            let note_path = create_new_note(&config, notes.len());
+            let status = std::process::Command::new("nvim")
+                .arg(&note_path.into_os_string())
+                .status();
+        }
         _ => println!("Unknown action"),
     }
 }
