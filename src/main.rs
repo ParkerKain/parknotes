@@ -1,6 +1,6 @@
 use std::fs::create_dir_all;
 use std::fs::read_dir;
-use std::path::Path;
+use std::io::stdin;
 use std::path::PathBuf;
 
 /// Represents all settings the user can set
@@ -64,6 +64,17 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>) {
     }
 }
 
+/// Prompts the user for the action they want to take
+fn prompt_for_action() {
+    let mut input = String::new();
+    while input.trim() != "c" {
+        input = String::new();
+        println!("\nWhat action would you like to take?");
+        println!("Options are ... \n\t - (c)reate");
+        stdin().read_line(&mut input).expect("Failed to read line");
+    }
+}
+
 fn main() {
     println!("Welcome to clife!");
 
@@ -78,6 +89,9 @@ fn main() {
 
     let notes = create_note_objects(&config);
     println!("Found {} notes", notes.len());
+
+    let action = prompt_for_action();
+    println!("Taking action: {:?}", action);
 }
 
 #[cfg(test)]
