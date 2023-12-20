@@ -74,10 +74,10 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>) {
 /// Prompts the user for the action they want to take
 fn prompt_for_action() -> Action {
     let mut input = String::new();
-    while input.trim() != "c" {
+    while !["c"].contains(&input.trim()) {
         input = String::new();
         println!("\nWhat action would you like to take?");
-        println!("Options are ... \n\t - (c)reate");
+        println!("Options are ... \n\t - (c)reate\n\t - (d)elete");
         stdin().read_line(&mut input).expect("Failed to read line");
     }
     return Action::Create;
@@ -123,7 +123,9 @@ fn main() {
                 .arg(&note_path.into_os_string())
                 .status();
         }
-        _ => println!("Unknown action"),
+        _ => {
+            println!("Unknown action")
+        }
     }
 }
 
