@@ -14,7 +14,8 @@ struct Config {
 /// Represents a single note files
 #[derive(Debug)]
 struct Note {
-    path: PathBuf,
+    full_path: PathBuf,
+    trunc_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -54,19 +55,26 @@ fn create_root_folder(config: &Config) {
 /// * `config` - a reference to a config object
 fn create_note_objects(config: &Config) -> Vec<Note> {
     let mut notes: Vec<Note> = Vec::new();
-    _get_dir_notes(&config.root_dir, &mut notes);
+    _get_dir_notes(&config.root_dir, &mut notes, &config.root_dir);
     return notes;
 }
 
-fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>) {
+fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
     let contents = read_dir(base).unwrap();
     for curr in contents {
         let curr_file = curr.expect("Failed to read");
         let curr_path = curr_file.path();
         if curr_path.is_dir() {
-            _get_dir_notes(&curr_path, notes);
+            _get_dir_notes(&curr_path, notes, root_dir);
         } else {
-            let curr_note = Note { path: curr_path };
+            let trunc_path = curr_path
+                .strip_prefix(root_dir.to_path_buf())
+                .unwrap()
+                .to_path_buf();
+            let curr_note = Note {
+                full_path: curr_path,
+                trunc_path,
+            };
             notes.push(curr_note)
         }
     }
@@ -107,18 +115,15 @@ fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
     return note_path;
 }
 
-fn prompt_for_note(config: &Config, notes: &Vec<Note>) -> PathBuf {
+fn prompt_for_note(notes: &Vec<Note>) -> PathBuf {
     let mut input = String::new();
+    let valid_input_passed: bool = false;
     while true {
         input = String::new();
         println!("\nWhat file would you like to delete?");
         println!("Options are ... ");
         for note in notes {
-            let note_path = &note
-                .path
-                .strip_prefix(config.root_dir.to_path_buf())
-                .unwrap();
-            println!("- {:?}", note_path.as_os_str());
+            println!("- {:?}", note.trunc_path.as_os_str());
         }
         stdin().read_line(&mut input).expect("Failed to read line");
     }
@@ -146,12 +151,12 @@ fn main() {
     match action {
         Action::Create => {
             let note_path = create_new_note(&config, notes.len());
-            let status = std::process::Command::new("nvim")
+            let _ = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
                 .status();
         }
         Action::Delete => {
-            let note_path = prompt_for_note(&config, &notes);
+            let note_path = prompt_for_note(&notes);
         }
         _ => {
             println!("Unknown action")
