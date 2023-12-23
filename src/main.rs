@@ -117,8 +117,8 @@ fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
 
 fn prompt_for_note(notes: &Vec<Note>) -> PathBuf {
     let mut input = String::new();
-    let valid_input_passed: bool = false;
-    while true {
+    let mut valid_input_passed: bool = false;
+    while !valid_input_passed {
         input = String::new();
         println!("\nWhat file would you like to delete?");
         println!("Options are ... ");
@@ -126,6 +126,12 @@ fn prompt_for_note(notes: &Vec<Note>) -> PathBuf {
             println!("- {:?}", note.trunc_path.as_os_str());
         }
         stdin().read_line(&mut input).expect("Failed to read line");
+        if notes
+            .iter()
+            .any(|e| e.trunc_path.to_str() == Some(&input.as_str().trim()))
+        {
+            valid_input_passed = true;
+        }
     }
 
     return PathBuf::from(".");
