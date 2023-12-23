@@ -60,6 +60,13 @@ fn create_note_objects(config: &Config) -> Vec<Note> {
     return notes;
 }
 
+/// Creates notes from the base directory - recurses through directories
+///
+/// # Arguments 
+///
+/// * `base` - a reference to the base directory to search
+/// * `notes` - The current state of a vector of notes to append to 
+/// * `root_dir` - the overall root_dir of the run
 fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
     let contents = read_dir(base).unwrap();
     for curr in contents {
@@ -100,6 +107,12 @@ fn prompt_for_action() -> Action {
     }
 }
 
+/// Creates a new note markdown file
+///
+/// # Arguments 
+///
+/// * `config` - the config file that controls the run
+/// * `note_suffix` - the number of the note to start with as a suffix
 fn create_new_note(config: &Config, mut note_suffix: usize) -> PathBuf {
     let mut note_created = false;
     let mut note_path = PathBuf::from(&config.root_dir);
@@ -121,6 +134,12 @@ fn create_new_note(config: &Config, mut note_suffix: usize) -> PathBuf {
     return note_path;
 }
 
+/// Prompts the user for a note to take action on
+///
+/// # Arguments
+///
+/// * `notes` - a reference to the notes vector
+/// * `action` - an action to take, only used to prompt the user
 fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
     let mut input = String::new();
     let mut valid_input_passed: bool = false;
@@ -143,6 +162,11 @@ fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
     return PathBuf::from(input.trim());
 }
 
+/// Confirms with the user that they want a file to be deleted
+///
+/// # Arguments 
+///
+/// * `path` - the potential file path to delete
 fn confirm_delete(path: &PathBuf) {
     let mut input = String::new();
     while !["n", "y"].contains(&input.trim()) {
@@ -158,6 +182,11 @@ fn confirm_delete(path: &PathBuf) {
     }
 }
 
+/// Deletes the passed PathBuf
+///
+/// # Arguments: 
+///
+/// * `full_path` - the file path to delete
 fn delete(full_path: PathBuf) -> bool {
     println!("Deleting note {} ...", full_path.display());
     let result = remove_file(full_path);
