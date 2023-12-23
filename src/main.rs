@@ -20,6 +20,7 @@ struct Note {
 #[derive(Debug)]
 enum Action {
     Create,
+    Delete,
 }
 
 /// Returns if the root dir exists already
@@ -74,13 +75,20 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>) {
 /// Prompts the user for the action they want to take
 fn prompt_for_action() -> Action {
     let mut input = String::new();
-    while !["c"].contains(&input.trim()) {
+    while !["c", "d"].contains(&input.trim()) {
         input = String::new();
         println!("\nWhat action would you like to take?");
         println!("Options are ... \n\t - (c)reate\n\t - (d)elete");
         stdin().read_line(&mut input).expect("Failed to read line");
     }
-    return Action::Create;
+
+    if input.trim() == "c" {
+        return Action::Create;
+    } else if input.trim() == "d" {
+        return Action::Delete;
+    } else {
+        panic!("Unknown input");
+    }
 }
 
 fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
@@ -97,6 +105,25 @@ fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
 
     println!("New note created: {}", note_name);
     return note_path;
+}
+
+fn prompt_for_note(config: &Config, notes: &Vec<Note>) -> PathBuf {
+    let mut input = String::new();
+    while true {
+        input = String::new();
+        println!("\nWhat file would you like to delete?");
+        println!("Options are ... ");
+        for note in notes {
+            let note_path = &note
+                .path
+                .strip_prefix(config.root_dir.to_path_buf())
+                .unwrap();
+            println!("- {:?}", note_path.as_os_str());
+        }
+        stdin().read_line(&mut input).expect("Failed to read line");
+    }
+
+    return PathBuf::from(".");
 }
 
 fn main() {
@@ -122,6 +149,9 @@ fn main() {
             let status = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
                 .status();
+        }
+        Action::Delete => {
+            let note_path = prompt_for_note(&config, &notes);
         }
         _ => {
             println!("Unknown action")
