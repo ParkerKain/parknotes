@@ -1,5 +1,6 @@
 use std::fs::create_dir_all;
 use std::fs::read_dir;
+use std::fs::remove_file;
 use std::fs::File;
 use std::io::stdin;
 use std::path::PathBuf;
@@ -115,12 +116,12 @@ fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
     return note_path;
 }
 
-fn prompt_for_note(notes: &Vec<Note>) -> PathBuf {
+fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
     let mut input = String::new();
     let mut valid_input_passed: bool = false;
     while !valid_input_passed {
         input = String::new();
-        println!("\nWhat file would you like to delete?");
+        println!("\nWhat file would you like to {}?", action);
         println!("Options are ... ");
         for note in notes {
             println!("- {:?}", note.trunc_path.as_os_str());
@@ -134,7 +135,36 @@ fn prompt_for_note(notes: &Vec<Note>) -> PathBuf {
         }
     }
 
-    return PathBuf::from(".");
+    return PathBuf::from(input.trim());
+}
+
+fn confirm_delete(path: &PathBuf) {
+    let mut input = String::new();
+    while !["n", "y"].contains(&input.trim()) {
+        input = String::new();
+        println!("\nAre you sure you want to delete {}?", path.display());
+        println!("Options are ... \n\t- (y)es\n\t- (n)o");
+        stdin().read_line(&mut input).expect("Failed to read line");
+    }
+
+    if &input.trim() == &"n" {
+        println!("Cancelling ...");
+        exit(0);
+    }
+}
+
+fn delete(full_path: PathBuf) -> bool{
+    println!("Deleting note {} ...", full_path.display());
+    let result = remove_file(full_path);
+    match result {
+        Ok(()) => {println!("File successfully deleted");}
+        Err(e) => {
+            panic!("Failed to delete file: {:?}", e);
+        }
+    }
+
+    return true
+
 }
 
 fn main() {
@@ -162,7 +192,11 @@ fn main() {
                 .status();
         }
         Action::Delete => {
-            let note_path = prompt_for_note(&notes);
+            let note_path = prompt_for_note(&notes, String::from("delete"));
+            confirm_delete(&note_path);
+            let mut full_path = config.root_dir.clone();
+            full_path.push(&note_path);
+            delete(full_path);
         }
         _ => {
             println!("Unknown action")
