@@ -100,19 +100,24 @@ fn prompt_for_action() -> Action {
     }
 }
 
-fn create_new_note(config: &Config, note_suffix: usize) -> PathBuf {
+fn create_new_note(config: &Config, mut note_suffix: usize) -> PathBuf {
+    let mut note_created = false;
     let mut note_path = PathBuf::from(&config.root_dir);
-    let mut note_name = String::from("new_note_");
-    note_name.push_str(&note_suffix.to_string());
-    note_name.push_str(".md");
-    note_path.push(&note_name);
-    if note_path.exists() {
-        println!("{} already exists, cancelling ...", note_name);
-        exit(0);
+    while !note_created {
+        note_path = PathBuf::from(&config.root_dir);
+        let mut note_name = String::from("new_note_");
+        note_name.push_str(&note_suffix.to_string());
+        note_name.push_str(".md");
+        note_path.push(&note_name);
+        if note_path.exists() {
+            println!("{} already exists, trying again ...", note_name);
+            note_suffix += 1;
+            continue;
+        }
+        let _ = File::create(&note_path);
+        println!("New note created: {}", note_name);
+        note_created = true;
     }
-    let _ = File::create(&note_path);
-
-    println!("New note created: {}", note_name);
     return note_path;
 }
 
@@ -153,18 +158,19 @@ fn confirm_delete(path: &PathBuf) {
     }
 }
 
-fn delete(full_path: PathBuf) -> bool{
+fn delete(full_path: PathBuf) -> bool {
     println!("Deleting note {} ...", full_path.display());
     let result = remove_file(full_path);
     match result {
-        Ok(()) => {println!("File successfully deleted");}
+        Ok(()) => {
+            println!("File successfully deleted");
+        }
         Err(e) => {
             panic!("Failed to delete file: {:?}", e);
         }
     }
 
-    return true
-
+    return true;
 }
 
 fn main() {
@@ -186,7 +192,7 @@ fn main() {
 
     match action {
         Action::Create => {
-            let note_path = create_new_note(&config, notes.len());
+            let note_path = create_new_note(&config, notes.len() + 1);
             let _ = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
                 .status();
