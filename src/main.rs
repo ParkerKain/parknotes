@@ -205,6 +205,7 @@ fn delete(full_path: PathBuf) -> bool {
     return true;
 }
 
+/// Prompts the user for a valid project name
 fn prompt_for_project_name() -> String {
     let mut input = String::new();
     let mut valid_input = false;
@@ -226,6 +227,11 @@ fn prompt_for_project_name() -> String {
     return String::from(input.trim());
 }
 
+/// Ensures the passed project_name is a valid directory name
+///
+/// # Arguments 
+///
+/// * project_name - a reference to the project_name
 fn validate_project_name(project_name: &String) -> bool {
     if project_name.trim().len() == 0 {
         return false;
