@@ -21,8 +21,9 @@ struct Note {
 
 #[derive(Debug)]
 enum Action {
-    Create,
+    CreateNote,
     Delete,
+    CreateProject,
 }
 
 /// Returns if the root dir exists already
@@ -62,10 +63,10 @@ fn create_note_objects(config: &Config) -> Vec<Note> {
 
 /// Creates notes from the base directory - recurses through directories
 ///
-/// # Arguments 
+/// # Arguments
 ///
 /// * `base` - a reference to the base directory to search
-/// * `notes` - The current state of a vector of notes to append to 
+/// * `notes` - The current state of a vector of notes to append to
 /// * `root_dir` - the overall root_dir of the run
 fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
     let contents = read_dir(base).unwrap();
@@ -91,17 +92,19 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
 /// Prompts the user for the action they want to take
 fn prompt_for_action() -> Action {
     let mut input = String::new();
-    while !["c", "d"].contains(&input.trim()) {
+    while !["c", "d", "p"].contains(&input.trim()) {
         input = String::new();
         println!("\nWhat action would you like to take?");
-        println!("Options are ... \n\t - (c)reate\n\t - (d)elete");
+        println!("Options are ... \n\t - (c)reate note\n\t - (d)elete\n\t - create (p)roject");
         stdin().read_line(&mut input).expect("Failed to read line");
     }
 
     if input.trim() == "c" {
-        return Action::Create;
+        return Action::CreateNote;
     } else if input.trim() == "d" {
         return Action::Delete;
+    } else if input.trim() == "p" {
+        return Action::CreateProject;
     } else {
         panic!("Unknown input");
     }
@@ -109,7 +112,7 @@ fn prompt_for_action() -> Action {
 
 /// Creates a new note markdown file
 ///
-/// # Arguments 
+/// # Arguments
 ///
 /// * `config` - the config file that controls the run
 /// * `note_suffix` - the number of the note to start with as a suffix
@@ -164,7 +167,7 @@ fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
 
 /// Confirms with the user that they want a file to be deleted
 ///
-/// # Arguments 
+/// # Arguments
 ///
 /// * `path` - the potential file path to delete
 fn confirm_delete(path: &PathBuf) {
@@ -184,7 +187,7 @@ fn confirm_delete(path: &PathBuf) {
 
 /// Deletes the passed PathBuf
 ///
-/// # Arguments: 
+/// # Arguments:
 ///
 /// * `full_path` - the file path to delete
 fn delete(full_path: PathBuf) -> bool {
@@ -200,6 +203,40 @@ fn delete(full_path: PathBuf) -> bool {
     }
 
     return true;
+}
+
+fn prompt_for_project_name() -> String {
+    let mut input = String::new();
+    let mut valid_input = false;
+    while !valid_input {
+        input = String::new();
+        println!("\nWhat would you like to name this project?");
+        stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Ensure the input is a valid directory name
+        valid_input = validate_project_name(&input);
+        if !valid_input {
+            println!(
+                "Potential project name {} contains invalid characters",
+                input
+            );
+            println!("May only use alphanumerics, '_', and '.'");
+        }
+    }
+    return String::from(input.trim());
+}
+
+fn validate_project_name(project_name: &String) -> bool {
+    if project_name.trim().len() == 0 {
+        return false;
+    }
+
+    // Ensure the input is a valid directory name
+    let valid_input = project_name
+        .trim()
+        .chars()
+        .all(|c| char::is_alphanumeric(c) || ['_', '.'].contains(&c));
+    return valid_input;
 }
 
 fn main() {
@@ -220,7 +257,7 @@ fn main() {
     let action = prompt_for_action();
 
     match action {
-        Action::Create => {
+        Action::CreateNote => {
             let note_path = create_new_note(&config, notes.len() + 1);
             let _ = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
@@ -232,6 +269,9 @@ fn main() {
             let mut full_path = config.root_dir.clone();
             full_path.push(&note_path);
             delete(full_path);
+        }
+        Action::CreateProject => {
+            let project_name = prompt_for_project_name();
         }
         _ => {
             println!("Unknown action")
@@ -270,5 +310,23 @@ mod tests {
         };
         let result: Vec<Note> = create_note_objects(&config);
         assert_eq!(result.len(), 3);
+    }
+
+    #[test]
+    fn test_valid_project_name() {
+        let valid_names = ["test", "test_1", "my.project", ".HELLO.P_Arker_", "   hello   "];
+
+        for name in valid_names {
+            assert_eq!(validate_project_name(&String::from(name)), true);
+        }
+    }
+
+    #[test]
+    fn test_invalid_project_name() {
+        let invalid_names = ["hello parker", "&parker", "_hello_("];
+
+        for name in invalid_names {
+            assert_eq!(validate_project_name(&String::from(name)), false);
+        }
     }
 }
