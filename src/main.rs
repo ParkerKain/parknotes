@@ -19,7 +19,7 @@ struct Config {
 /// Represents a single note files
 #[derive(Debug)]
 struct Note {
-    full_path: PathBuf,
+    // full_path: PathBuf,
     trunc_path: PathBuf,
 }
 
@@ -61,7 +61,7 @@ fn create_root_folder(config: &Config) {
 /// * `config` - a reference to a config object
 fn create_note_objects(config: &Config) -> Vec<Note> {
     let mut notes: Vec<Note> = Vec::new();
-    _get_dir_notes(&config.root_dir, &mut notes, &config.root_dir);
+    _get_dir_notes(&config.root_dir, &mut notes, &config.root_dir, &config.ignore_dirs);
     return notes;
 }
 
@@ -72,7 +72,7 @@ fn create_note_objects(config: &Config) -> Vec<Note> {
 /// * `base` - a reference to the base directory to search
 /// * `notes` - The current state of a vector of notes to append to
 /// * `root_dir` - the overall root_dir of the run
-fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
+fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf, ignore_dirs: &Vec<String>) {
     let contents = read_dir(base).unwrap();
     for curr in contents {
         let curr_file = curr.expect("Failed to read");
@@ -85,19 +85,19 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
                 .map(|comp| comp.as_os_str())
                 .collect();
             let contains_ignored_dir = components.iter().any(|comp| {
-                vec![String::from(".git")].contains(&String::from(comp.to_str().unwrap()))
+                ignore_dirs.contains(&String::from(comp.to_str().unwrap()))
             });
             if contains_ignored_dir {
                 continue;
             }
-            _get_dir_notes(&curr_path, notes, root_dir);
+            _get_dir_notes(&curr_path, notes, root_dir, ignore_dirs);
         } else {
             let trunc_path = curr_path
                 .strip_prefix(root_dir.to_path_buf())
                 .unwrap()
                 .to_path_buf();
             let curr_note = Note {
-                full_path: curr_path,
+                // full_path: curr_path,
                 trunc_path,
             };
             notes.push(curr_note)
@@ -303,11 +303,11 @@ fn main() {
             delete(full_path);
         }
         Action::CreateProject => {
-            let project_name = prompt_for_project_name();
+            let _project_name = prompt_for_project_name();
         }
-        _ => {
-            println!("Unknown action")
-        }
+        // _ => {
+        //     println!("Unknown action")
+        // }
     }
 }
 
@@ -319,6 +319,7 @@ mod tests {
     fn test_detect_root_folder_exists() {
         let config = Config {
             root_dir: PathBuf::from("/home"),
+            ignore_dirs: vec![]
         };
         let result: bool = detect_root_folder(&config);
         assert_eq!(result, true)
