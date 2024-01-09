@@ -1,3 +1,5 @@
+use std::env;
+use std::ffi::OsStr;
 use std::fs::create_dir_all;
 use std::fs::read_dir;
 use std::fs::remove_file;
@@ -10,6 +12,8 @@ use std::process::exit;
 struct Config {
     /// Where everything will be stored locally
     root_dir: PathBuf,
+    // directories to ignore
+    ignore_dirs: Vec<String>,
 }
 
 /// Represents a single note files
@@ -74,6 +78,18 @@ fn _get_dir_notes(base: &PathBuf, notes: &mut Vec<Note>, root_dir: &PathBuf) {
         let curr_file = curr.expect("Failed to read");
         let curr_path = curr_file.path();
         if curr_path.is_dir() {
+            // I am ashamed of how this works - split path into parts, then compare against ignored
+            // dirs
+            let components: Vec<&OsStr> = curr_path
+                .components()
+                .map(|comp| comp.as_os_str())
+                .collect();
+            let contains_ignored_dir = components.iter().any(|comp| {
+                vec![String::from(".git")].contains(&String::from(comp.to_str().unwrap()))
+            });
+            if contains_ignored_dir {
+                continue;
+            }
             _get_dir_notes(&curr_path, notes, root_dir);
         } else {
             let trunc_path = curr_path
@@ -229,7 +245,7 @@ fn prompt_for_project_name() -> String {
 
 /// Ensures the passed project_name is a valid directory name
 ///
-/// # Arguments 
+/// # Arguments
 ///
 /// * project_name - a reference to the project_name
 fn validate_project_name(project_name: &String) -> bool {
@@ -248,8 +264,18 @@ fn validate_project_name(project_name: &String) -> bool {
 fn main() {
     println!("Welcome to clife!");
 
+    let root_dir_result = env::var("CLIFE_ROOT_DIR");
+    let root_dir: String;
+    match root_dir_result {
+        Ok(dir) => root_dir = dir,
+        Err(_) => {
+            panic!("Please set the CLIFE_ROOT_DIR environment variable.")
+        }
+    }
+
     let config = Config {
-        root_dir: PathBuf::from("/home/parker/.clife"),
+        root_dir: PathBuf::from(root_dir),
+        ignore_dirs: vec![String::from(".git")],
     };
 
     if !detect_root_folder(&config) {
@@ -320,7 +346,13 @@ mod tests {
 
     #[test]
     fn test_valid_project_name() {
-        let valid_names = ["test", "test_1", "my.project", ".HELLO.P_Arker_", "   hello   "];
+        let valid_names = [
+            "test",
+            "test_1",
+            "my.project",
+            ".HELLO.P_Arker_",
+            "   hello   ",
+        ];
 
         for name in valid_names {
             assert_eq!(validate_project_name(&String::from(name)), true);
