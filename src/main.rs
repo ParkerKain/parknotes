@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
+use std::str::FromStr;
 
 use inquire::InquireError;
 use inquire::Select;
@@ -138,7 +139,8 @@ fn _get_dir_objects(
 /// Prompts the user for the action they want to take
 fn prompt_for_action() -> Action {
     let options = vec!["Create Note", "Delete Note", "Create Project"];
-    let ans: Result<&str, InquireError> = Select::new("What action would you like to take?", options).prompt();
+    let ans: Result<&str, InquireError> =
+        Select::new("What action would you like to take?", options).prompt();
 
     match ans {
         Ok(input) => {
@@ -151,10 +153,9 @@ fn prompt_for_action() -> Action {
             } else {
                 panic!("Unknown input");
             }
-        },
+        }
         Err(_) => panic!("There was an error, please try again"),
     }
-
 }
 
 /// Creates a new note markdown file
@@ -190,26 +191,16 @@ fn create_new_note(config: &Config, mut note_suffix: usize) -> PathBuf {
 ///
 /// * `notes` - a reference to the notes vector
 /// * `action` - an action to take, only used to prompt the user
-fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
-    let mut input = String::new();
-    let mut valid_input_passed: bool = false;
-    while !valid_input_passed {
-        input = String::new();
-        println!("\nWhat file would you like to {}?", action);
-        println!("Options are ... ");
-        for note in notes {
-            println!("- {:?}", note.trunc_path.as_os_str());
-        }
-        stdin().read_line(&mut input).expect("Failed to read line");
-        if notes
-            .iter()
-            .any(|e| e.trunc_path.to_str() == Some(&input.as_str().trim()))
-        {
-            valid_input_passed = true;
-        }
-    }
+fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf{
+    let options = notes.iter().map(|note| note.trunc_path.to_str().unwrap()).collect();
+    let prompt = String::from("What file would you like to ") + &action + &String::from("?");
+    let ans: Result<&str, InquireError> =
+        Select::new(&prompt, options).with_page_size(20).prompt();
 
-    return PathBuf::from(input.trim());
+    match ans {
+        Ok(choice) => return PathBuf::from(choice.trim()),
+        Err(_) => panic!("There was an error, please try again"),
+    }
 }
 
 /// Confirms with the user that they want a file to be deleted
