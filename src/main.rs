@@ -8,6 +8,9 @@ use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
 
+use inquire::InquireError;
+use inquire::Select;
+
 /// Represents all settings the user can set
 struct Config {
     /// Where everything will be stored locally
@@ -134,23 +137,24 @@ fn _get_dir_objects(
 
 /// Prompts the user for the action they want to take
 fn prompt_for_action() -> Action {
-    let mut input = String::new();
-    while !["c", "d", "p"].contains(&input.trim()) {
-        input = String::new();
-        println!("\nWhat action would you like to take?");
-        println!("Options are ... \n\t - (c)reate note\n\t - (d)elete\n\t - create (p)roject");
-        stdin().read_line(&mut input).expect("Failed to read line");
+    let options = vec!["Create Note", "Delete Note", "Create Project"];
+    let ans: Result<&str, InquireError> = Select::new("What action would you like to take?", options).prompt();
+
+    match ans {
+        Ok(input) => {
+            if input.trim() == "Create Note" {
+                return Action::CreateNote;
+            } else if input.trim() == "Delete Note" {
+                return Action::Delete;
+            } else if input.trim() == "Create Project" {
+                return Action::CreateProject;
+            } else {
+                panic!("Unknown input");
+            }
+        },
+        Err(_) => panic!("There was an error, please try again"),
     }
 
-    if input.trim() == "c" {
-        return Action::CreateNote;
-    } else if input.trim() == "d" {
-        return Action::Delete;
-    } else if input.trim() == "p" {
-        return Action::CreateProject;
-    } else {
-        panic!("Unknown input");
-    }
 }
 
 /// Creates a new note markdown file
@@ -360,6 +364,7 @@ mod tests {
     fn test_detect_root_folder_not_exists() {
         let config = Config {
             root_dir: PathBuf::from("~/nonsense_folder_ntuyfwntw/"),
+            ignore_dirs: vec![],
         };
         let result: bool = detect_root_folder(&config);
         assert_eq!(result, false)
@@ -371,8 +376,9 @@ mod tests {
             root_dir: PathBuf::from(
                 "/home/parker/Documents/projects/clife/clife/test_data/.clife/",
             ),
+            ignore_dirs: vec![],
         };
-        let result: Vec<Note> = create_note_objects(&config);
+        let (result, _) = create_objects(&config);
         assert_eq!(result.len(), 3);
     }
 
