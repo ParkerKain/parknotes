@@ -9,8 +9,10 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
+use inquire::validator::Validation;
 use inquire::InquireError;
 use inquire::Select;
+use inquire::Text;
 
 /// Represents all settings the user can set
 struct Config {
@@ -158,6 +160,35 @@ fn prompt_for_action() -> Action {
     }
 }
 
+fn prompt_for_new_note_name() -> String {
+    let validator = |name: &str| {
+        let invalid_chars = vec![
+            '/', '\\', '"', '\'', '*', ';', '-', '?', '[', ']', '(', ')', '~', '!', '$', '{', '}',
+            '<', '>', '#', '@', '&', '|', ' ',
+        ];
+        if name
+            .chars()
+            .into_iter()
+            .any(|curr| invalid_chars.contains(&curr))
+        {
+            return Ok(Validation::Invalid("Name contains invalid character".into()));
+        } else if name.len() == 0{
+            return Ok(Validation::Invalid("Name is length zero".into()));
+            
+        } else {
+            return Ok(Validation::Valid);
+        }
+    };
+    let name = Text::new("What would you like to name this note?")
+        .with_validator(validator)
+        .prompt();
+
+    match name {
+        Ok(name) => return name,
+        Err(_) => panic!("An error happened when asking for your name, try again later."),
+    }
+}
+
 /// Creates a new note markdown file
 ///
 /// # Arguments
@@ -191,11 +222,13 @@ fn create_new_note(config: &Config, mut note_suffix: usize) -> PathBuf {
 ///
 /// * `notes` - a reference to the notes vector
 /// * `action` - an action to take, only used to prompt the user
-fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf{
-    let options = notes.iter().map(|note| note.trunc_path.to_str().unwrap()).collect();
+fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
+    let options = notes
+        .iter()
+        .map(|note| note.trunc_path.to_str().unwrap())
+        .collect();
     let prompt = String::from("What file would you like to ") + &action + &String::from("?");
-    let ans: Result<&str, InquireError> =
-        Select::new(&prompt, options).with_page_size(20).prompt();
+    let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_page_size(20).prompt();
 
     match ans {
         Ok(choice) => return PathBuf::from(choice.trim()),
@@ -317,6 +350,7 @@ fn main() {
 
     match action {
         Action::CreateNote => {
+            let new_note_name = prompt_for_new_note_name();
             let note_path = create_new_note(&config, notes.len() + 1);
             let _ = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
