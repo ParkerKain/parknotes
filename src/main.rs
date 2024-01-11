@@ -171,10 +171,11 @@ fn prompt_for_new_note_name() -> String {
             .into_iter()
             .any(|curr| invalid_chars.contains(&curr))
         {
-            return Ok(Validation::Invalid("Name contains invalid character".into()));
-        } else if name.len() == 0{
+            return Ok(Validation::Invalid(
+                "Name contains invalid character".into(),
+            ));
+        } else if name.len() == 0 {
             return Ok(Validation::Invalid("Name is length zero".into()));
-            
         } else {
             return Ok(Validation::Valid);
         }
@@ -194,19 +195,22 @@ fn prompt_for_new_note_name() -> String {
 /// # Arguments
 ///
 /// * `config` - the config file that controls the run
-/// * `note_suffix` - the number of the note to start with as a suffix
-fn create_new_note(config: &Config, mut note_suffix: usize) -> PathBuf {
+/// * `orig_note_name` - the original intended name of the new note
+fn create_new_note(config: &Config, orig_note_name: String) -> PathBuf {
     let mut note_created = false;
     let mut note_path = PathBuf::from(&config.root_dir);
+    let mut note_suffix = String::from("");
+    let mut attempt = 0;
     while !note_created {
         note_path = PathBuf::from(&config.root_dir);
-        let mut note_name = String::from("new_note_");
-        note_name.push_str(&note_suffix.to_string());
+        let mut note_name = String::from(&orig_note_name);
+        note_name.push_str(&note_suffix);
         note_name.push_str(".md");
         note_path.push(&note_name);
         if note_path.exists() {
             println!("{} already exists, trying again ...", note_name);
-            note_suffix += 1;
+            attempt += 1;
+            note_suffix = String::from("_") + &attempt.to_string();
             continue;
         }
         let _ = File::create(&note_path);
@@ -242,17 +246,18 @@ fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
 ///
 /// * `path` - the potential file path to delete
 fn confirm_delete(path: &PathBuf) {
-    let mut input = String::new();
-    while !["n", "y"].contains(&input.trim()) {
-        input = String::new();
-        println!("\nAre you sure you want to delete {}?", path.display());
-        println!("Options are ... \n\t- (y)es\n\t- (n)o");
-        stdin().read_line(&mut input).expect("Failed to read line");
-    }
+    let options = vec!["Yes", "No"];
+    let prompt = String::from("Are you sure you want to delete ") + &path.to_string_lossy();
+    let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_starting_cursor(1).prompt();
 
-    if &input.trim() == &"n" {
-        println!("Cancelling ...");
-        exit(0);
+    match ans {
+        Ok(input) => {
+            if input.trim() == "No" {
+                println!("Cancelling ...");
+                exit(0);
+            }
+        }
+        Err(_) => panic!("There was an error, please try again"),
     }
 }
 
@@ -351,7 +356,7 @@ fn main() {
     match action {
         Action::CreateNote => {
             let new_note_name = prompt_for_new_note_name();
-            let note_path = create_new_note(&config, notes.len() + 1);
+            let note_path = create_new_note(&config, new_note_name);
             let _ = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
                 .status();
