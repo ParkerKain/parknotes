@@ -7,7 +7,6 @@ use std::fs::File;
 use std::io::stdin;
 use std::path::PathBuf;
 use std::process::exit;
-use std::str::FromStr;
 
 use inquire::validator::Validation;
 use inquire::InquireError;
@@ -196,13 +195,14 @@ fn prompt_for_new_note_name() -> String {
 ///
 /// * `config` - the config file that controls the run
 /// * `orig_note_name` - the original intended name of the new note
-fn create_new_note(config: &Config, orig_note_name: String) -> PathBuf {
+fn create_new_note(config: &Config, orig_note_name: String, project_path: PathBuf) -> PathBuf {
     let mut note_created = false;
     let mut note_path = PathBuf::from(&config.root_dir);
     let mut note_suffix = String::from("");
     let mut attempt = 0;
     while !note_created {
         note_path = PathBuf::from(&config.root_dir);
+        note_path.push(&project_path);
         let mut note_name = String::from(&orig_note_name);
         note_name.push_str(&note_suffix);
         note_name.push_str(".md");
@@ -240,6 +240,26 @@ fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
     }
 }
 
+/// Prompts the user for a note to take action on
+///
+/// # Arguments
+///
+/// * `notes` - a reference to the notes vector
+/// * `action` - an action to take, only used to prompt the user
+fn prompt_for_project(project: &Vec<Project>, action: String) -> PathBuf {
+    let options = project
+        .iter()
+        .map(|note| note.trunc_path.to_str().unwrap())
+        .collect();
+    let prompt = String::from("What project would you like to ") + &action + &String::from("?");
+    let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_page_size(20).prompt();
+
+    match ans {
+        Ok(choice) => return PathBuf::from(choice.trim()),
+        Err(_) => panic!("There was an error, please try again"),
+    }
+}
+
 /// Confirms with the user that they want a file to be deleted
 ///
 /// # Arguments
@@ -247,8 +267,12 @@ fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
 /// * `path` - the potential file path to delete
 fn confirm_delete(path: &PathBuf) {
     let options = vec!["Yes", "No"];
-    let prompt = String::from("Are you sure you want to delete ") + &path.to_string_lossy();
-    let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_starting_cursor(1).prompt();
+    let prompt = String::from("Are you sure you want to delete ")
+        + &path.to_string_lossy()
+        + &String::from("?");
+    let ans: Result<&str, InquireError> = Select::new(&prompt, options)
+        .with_starting_cursor(1)
+        .prompt();
 
     match ans {
         Ok(input) => {
@@ -356,7 +380,8 @@ fn main() {
     match action {
         Action::CreateNote => {
             let new_note_name = prompt_for_new_note_name();
-            let note_path = create_new_note(&config, new_note_name);
+            let new_note_project = prompt_for_project(&projects, String::from("add this note to"));
+            let note_path = create_new_note(&config, new_note_name, new_note_project);
             let _ = std::process::Command::new("nvim")
                 .arg(&note_path.into_os_string())
                 .status();
