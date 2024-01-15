@@ -1,6 +1,6 @@
-# Welcome to `clife`!
+# Welcome to `parknotes`!
 
-`clife` (pronounced cee-ell-life) is a project that serves a couple purposes for me: 
+`parknotes` is a project that serves a couple purposes for me: 
 
 * Be a landing point for todos and note taking via markdown files and neovim, which I use in my personal life and work.
 * Have a good reason to learn Rust and start to practice it on a real project!

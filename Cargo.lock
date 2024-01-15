@@ -21,13 +21,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "clife"
-version = "0.1.0"
-dependencies = [
- "inquire",
-]
-
-[[package]]
 name = "crossterm"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -144,6 +137,13 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-targets",
+]
+
+[[package]]
+name = "parknotes"
+version = "0.1.0"
+dependencies = [
+ "inquire",
 ]
 
 [[package]]

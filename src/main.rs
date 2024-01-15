@@ -1,7 +1,9 @@
 use std::env;
 use std::ffi::OsStr;
+use std::fs;
 use std::fs::create_dir_all;
 use std::fs::read_dir;
+use std::fs::remove_dir_all;
 use std::fs::remove_file;
 use std::fs::File;
 use std::io::stdin;
@@ -38,8 +40,9 @@ struct Project {
 #[derive(Debug)]
 enum Action {
     CreateNote,
-    Delete,
+    DeleteNote,
     CreateProject,
+    DeleteProject,
 }
 
 /// Returns if the root dir exists already
@@ -139,7 +142,12 @@ fn _get_dir_objects(
 
 /// Prompts the user for the action they want to take
 fn prompt_for_action() -> Action {
-    let options = vec!["Create Note", "Delete Note", "Create Project"];
+    let options = vec![
+        "Create Note",
+        "Delete Note",
+        "Create Project",
+        "Delete Project",
+    ];
     let ans: Result<&str, InquireError> =
         Select::new("What action would you like to take?", options).prompt();
 
@@ -148,9 +156,11 @@ fn prompt_for_action() -> Action {
             if input.trim() == "Create Note" {
                 return Action::CreateNote;
             } else if input.trim() == "Delete Note" {
-                return Action::Delete;
+                return Action::DeleteNote;
             } else if input.trim() == "Create Project" {
                 return Action::CreateProject;
+            } else if input.trim() == "Delete Project" {
+                return Action::DeleteProject;
             } else {
                 panic!("Unknown input");
             }
@@ -260,12 +270,35 @@ fn prompt_for_project(project: &Vec<Project>, action: String) -> PathBuf {
     }
 }
 
+/// Creates a new project directory
+///
+/// # Arguments
+///
+/// * `config` - the config file that controls the run
+/// * `orig_note_name` - the original intended name of the new note
+fn create_new_project(config: &Config, project_name: String) {
+    let mut project_path = PathBuf::from(&config.root_dir);
+    project_path.push(&project_name);
+    if project_path.exists() {
+        println!("{} already exists!", project_name);
+        return;
+    }
+    let _ = fs::create_dir(&project_path);
+    println!("New project created: {}", project_name);
+}
+
 /// Confirms with the user that they want a file to be deleted
 ///
 /// # Arguments
 ///
 /// * `path` - the potential file path to delete
-fn confirm_delete(path: &PathBuf) {
+fn confirm_delete(path: &PathBuf, full_path: &PathBuf) {
+    if full_path.is_dir() {
+        println!(
+            "{} is a project, so this will delete all child notes as well, be VERY careful!",
+            path.display()
+        );
+    }
     let options = vec!["Yes", "No"];
     let prompt = String::from("Are you sure you want to delete ")
         + &path.to_string_lossy()
@@ -291,14 +324,19 @@ fn confirm_delete(path: &PathBuf) {
 ///
 /// * `full_path` - the file path to delete
 fn delete(full_path: PathBuf) -> bool {
-    println!("Deleting note {} ...", full_path.display());
-    let result = remove_file(full_path);
+    println!("Deleting {} ...", full_path.display());
+    let result: Result<(), std::io::Error>;
+    if full_path.is_dir() {
+        result = remove_dir_all(&full_path);
+    } else {
+        result = remove_file(&full_path);
+    }
     match result {
         Ok(()) => {
-            println!("File successfully deleted");
+            println!("{} successfully deleted", full_path.display());
         }
         Err(e) => {
-            panic!("Failed to delete file: {:?}", e);
+            panic!("Failed to delete: {:?}", e);
         }
     }
 
@@ -307,63 +345,57 @@ fn delete(full_path: PathBuf) -> bool {
 
 /// Prompts the user for a valid project name
 fn prompt_for_project_name() -> String {
-    let mut input = String::new();
-    let mut valid_input = false;
-    while !valid_input {
-        input = String::new();
-        println!("\nWhat would you like to name this project?");
-        stdin().read_line(&mut input).expect("Failed to read line");
-
-        // Ensure the input is a valid directory name
-        valid_input = validate_project_name(&input);
-        if !valid_input {
-            println!(
-                "Potential project name {} contains invalid characters",
-                input
-            );
-            println!("May only use alphanumerics, '_', and '.'");
+    let validator = |name: &str| {
+        let invalid_chars = vec![
+            '/', '\\', '"', '\'', '*', ';', '-', '?', '[', ']', '(', ')', '~', '!', '$', '{', '}',
+            '<', '>', '#', '@', '&', '|', ' ',
+        ];
+        if name
+            .chars()
+            .into_iter()
+            .any(|curr| invalid_chars.contains(&curr))
+        {
+            return Ok(Validation::Invalid(
+                "Name contains invalid character".into(),
+            ));
+        } else if name.len() == 0 {
+            return Ok(Validation::Invalid("Name is length zero".into()));
+        } else {
+            return Ok(Validation::Valid);
         }
-    }
-    return String::from(input.trim());
-}
+    };
+    let name = Text::new("What would you like to name this project?")
+        .with_validator(validator)
+        .prompt();
 
-/// Ensures the passed project_name is a valid directory name
-///
-/// # Arguments
-///
-/// * project_name - a reference to the project_name
-fn validate_project_name(project_name: &String) -> bool {
-    if project_name.trim().len() == 0 {
-        return false;
+    match name {
+        Ok(name) => return name,
+        Err(_) => panic!("An error happened when asking for your project, try again later."),
     }
-
-    // Ensure the input is a valid directory name
-    let valid_input = project_name
-        .trim()
-        .chars()
-        .all(|c| char::is_alphanumeric(c) || ['_', '.'].contains(&c));
-    return valid_input;
 }
 
 fn main() {
-    println!("Welcome to clife!");
+    println!("Welcome to parknotes!");
 
-    let root_dir_result = env::var("CLIFE_ROOT_DIR");
+    let root_dir_result = env::var("PARKNOTES_ROOT_DIR");
     let root_dir: String;
     match root_dir_result {
         Ok(dir) => root_dir = dir,
         Err(_) => {
-            panic!("Please set the CLIFE_ROOT_DIR environment variable.")
+            panic!("Please set PARKNOTES_ROOT_DIR environment variable.")
         }
     }
 
     let config = Config {
         root_dir: PathBuf::from(root_dir),
-        ignore_dirs: vec![String::from(".git")],
+        ignore_dirs: vec![String::from(".git"), String::from("bin")],
     };
 
     if !detect_root_folder(&config) {
-        println!("No clife folder detected at {}", config.root_dir.display());
+        println!(
+            "No parknotes folder detected at {}",
+            config.root_dir.display()
+        );
         create_root_folder(&config);
     }
 
@@ -386,18 +418,24 @@ fn main() {
                 .arg(&note_path.into_os_string())
                 .status();
         }
-        Action::Delete => {
+        Action::DeleteNote => {
             let note_path = prompt_for_note(&notes, String::from("delete"));
-            confirm_delete(&note_path);
             let mut full_path = config.root_dir.clone();
             full_path.push(&note_path);
+            confirm_delete(&note_path, &full_path);
             delete(full_path);
         }
         Action::CreateProject => {
-            let _project_name = prompt_for_project_name();
-        } // _ => {
-          //     println!("Unknown action")
-          // }
+            let project_name = prompt_for_project_name();
+            create_new_project(&config, project_name);
+        }
+        Action::DeleteProject => {
+            let project_path = prompt_for_project(&projects, String::from("delete"));
+            let mut full_path = config.root_dir.clone();
+            full_path.push(&project_path);
+            confirm_delete(&project_path, &full_path);
+            delete(full_path);
+        }
     }
 }
 
@@ -429,7 +467,7 @@ mod tests {
     fn test_create_note_objects() {
         let config = Config {
             root_dir: PathBuf::from(
-                "/home/parker/Documents/projects/clife/clife/test_data/.clife/",
+                "/home/parker/Documents/projects/parknotes/parknotes/test_data/.parknotes/",
             ),
             ignore_dirs: vec![],
         };
