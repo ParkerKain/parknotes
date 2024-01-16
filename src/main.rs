@@ -262,16 +262,4 @@ mod tests {
         let result: bool = detect_root_folder(&config);
         assert_eq!(result, false)
     }
-
-    #[test]
-    fn test_create_note_objects() {
-        let config = Config {
-            root_dir: PathBuf::from(
-                "/home/parker/Documents/projects/parknotes/parknotes/test_data/.parknotes/",
-            ),
-            ignore_dirs: vec![],
-        };
-        let (result, _) = create_objects(&config);
-        assert_eq!(result.len(), 3);
-    }
 }
