@@ -1,49 +1,16 @@
 use std::env;
 use std::ffi::OsStr;
-use std::fs;
-use std::fs::create_dir_all;
-use std::fs::read_dir;
-use std::fs::remove_dir_all;
-use std::fs::remove_file;
-use std::fs::File;
-use std::io::stdin;
+use std::fs::{create_dir, create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::path::PathBuf;
 use std::process::exit;
 
-use inquire::validator::Validation;
-use inquire::InquireError;
-use inquire::Select;
-use inquire::Text;
+use inquire::{validator::Validation, InquireError, Select, Text};
 
-/// Represents all settings the user can set
-struct Config {
-    /// Where everything will be stored locally
-    root_dir: PathBuf,
-    // directories to ignore
-    ignore_dirs: Vec<String>,
-}
+use crate::prompts::{prompt_for_action, prompt_for_new_note_name, prompt_for_note};
+use crate::structs::{Action, Config, Note, Project};
 
-/// Represents a single note files
-#[derive(Debug)]
-struct Note {
-    // full_path: PathBuf,
-    trunc_path: PathBuf,
-}
-
-/// Represents a project, or really just a directory
-#[derive(Debug)]
-struct Project {
-    // full_path: PathBuf,
-    trunc_path: PathBuf,
-}
-
-#[derive(Debug)]
-enum Action {
-    CreateNote,
-    DeleteNote,
-    CreateProject,
-    DeleteProject,
-}
+mod prompts;
+mod structs;
 
 /// Returns if the root dir exists already
 ///
@@ -124,78 +91,13 @@ fn _get_dir_objects(
             if contains_ignored_dir {
                 continue;
             }
-            let curr_project = Project {
-                // full_path: curr_path,
-                trunc_path,
-            };
+            let curr_project = Project { trunc_path };
             projects.push(curr_project);
             _get_dir_objects(&curr_path, notes, projects, root_dir, ignore_dirs);
         } else {
-            let curr_note = Note {
-                // full_path: curr_path,
-                trunc_path,
-            };
+            let curr_note = Note { trunc_path };
             notes.push(curr_note)
         }
-    }
-}
-
-/// Prompts the user for the action they want to take
-fn prompt_for_action() -> Action {
-    let options = vec![
-        "Create Note",
-        "Delete Note",
-        "Create Project",
-        "Delete Project",
-    ];
-    let ans: Result<&str, InquireError> =
-        Select::new("What action would you like to take?", options).prompt();
-
-    match ans {
-        Ok(input) => {
-            if input.trim() == "Create Note" {
-                return Action::CreateNote;
-            } else if input.trim() == "Delete Note" {
-                return Action::DeleteNote;
-            } else if input.trim() == "Create Project" {
-                return Action::CreateProject;
-            } else if input.trim() == "Delete Project" {
-                return Action::DeleteProject;
-            } else {
-                panic!("Unknown input");
-            }
-        }
-        Err(_) => panic!("There was an error, please try again"),
-    }
-}
-
-fn prompt_for_new_note_name() -> String {
-    let validator = |name: &str| {
-        let invalid_chars = vec![
-            '/', '\\', '"', '\'', '*', ';', '-', '?', '[', ']', '(', ')', '~', '!', '$', '{', '}',
-            '<', '>', '#', '@', '&', '|', ' ',
-        ];
-        if name
-            .chars()
-            .into_iter()
-            .any(|curr| invalid_chars.contains(&curr))
-        {
-            return Ok(Validation::Invalid(
-                "Name contains invalid character".into(),
-            ));
-        } else if name.len() == 0 {
-            return Ok(Validation::Invalid("Name is length zero".into()));
-        } else {
-            return Ok(Validation::Valid);
-        }
-    };
-    let name = Text::new("What would you like to name this note?")
-        .with_validator(validator)
-        .prompt();
-
-    match name {
-        Ok(name) => return name,
-        Err(_) => panic!("An error happened when asking for your name, try again later."),
     }
 }
 
@@ -236,26 +138,6 @@ fn create_new_note(config: &Config, orig_note_name: String, project_path: PathBu
 ///
 /// * `notes` - a reference to the notes vector
 /// * `action` - an action to take, only used to prompt the user
-fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
-    let options = notes
-        .iter()
-        .map(|note| note.trunc_path.to_str().unwrap())
-        .collect();
-    let prompt = String::from("What file would you like to ") + &action + &String::from("?");
-    let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_page_size(20).prompt();
-
-    match ans {
-        Ok(choice) => return PathBuf::from(choice.trim()),
-        Err(_) => panic!("There was an error, please try again"),
-    }
-}
-
-/// Prompts the user for a note to take action on
-///
-/// # Arguments
-///
-/// * `notes` - a reference to the notes vector
-/// * `action` - an action to take, only used to prompt the user
 fn prompt_for_project(project: &Vec<Project>, action: String) -> PathBuf {
     let options = project
         .iter()
@@ -283,7 +165,7 @@ fn create_new_project(config: &Config, project_name: String) {
         println!("{} already exists!", project_name);
         return;
     }
-    let _ = fs::create_dir(&project_path);
+    let _ = create_dir(&project_path);
     println!("New project created: {}", project_name);
 }
 
