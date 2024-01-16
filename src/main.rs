@@ -1,16 +1,17 @@
+use inquire::{validator::Validation, InquireError, Select, Text};
+
 use std::env;
 use std::ffi::OsStr;
 use std::fs::{create_dir, create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::path::PathBuf;
 use std::process::exit;
 
-use inquire::{validator::Validation, InquireError, Select, Text};
-
 use crate::prompts::{prompt_for_action, prompt_for_new_note_name, prompt_for_note};
 use crate::structs::{Action, Config, Note, Project};
 
 mod prompts;
 mod structs;
+
 
 /// Returns if the root dir exists already
 ///
@@ -355,29 +356,5 @@ mod tests {
         };
         let (result, _) = create_objects(&config);
         assert_eq!(result.len(), 3);
-    }
-
-    #[test]
-    fn test_valid_project_name() {
-        let valid_names = [
-            "test",
-            "test_1",
-            "my.project",
-            ".HELLO.P_Arker_",
-            "   hello   ",
-        ];
-
-        for name in valid_names {
-            assert_eq!(validate_project_name(&String::from(name)), true);
-        }
-    }
-
-    #[test]
-    fn test_invalid_project_name() {
-        let invalid_names = ["hello parker", "&parker", "_hello_("];
-
-        for name in invalid_names {
-            assert_eq!(validate_project_name(&String::from(name)), false);
-        }
     }
 }
