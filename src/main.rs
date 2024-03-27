@@ -152,7 +152,6 @@ fn create_new_project(config: &Config, project_name: String) {
 /// * `full_path` - the file path to delete
 fn delete(full_path: PathBuf) -> bool {
     println!("Deleting {} ...", full_path.display());
-    // let result: Result<(), std::io::Error>;
     let result: Result<(), std::io::Error> = if full_path.is_dir() {
         remove_dir_all(&full_path)
     } else {
