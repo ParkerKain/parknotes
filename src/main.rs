@@ -19,10 +19,9 @@ mod structs;
 /// * `config` - a reference to a config object
 fn detect_root_folder(config: &Config) -> bool {
     let exists = config.root_dir.try_exists();
-    if exists.is_ok() {
-        return exists.unwrap();
-    } else {
-        panic!("Failed to parse root dir {}", config.root_dir.display());
+    match exists.is_ok() {
+        true => exists.unwrap(),
+        false => panic!("Failed to parse root dir {}", config.root_dir.display()),
     }
 }
 
@@ -51,7 +50,7 @@ fn create_objects(config: &Config) -> (Vec<Note>, Vec<Project>) {
         &config.root_dir,
         &config.ignore_dirs,
     );
-    return (notes, projects);
+    (notes, projects)
 }
 
 /// Creates notes and projects from the base directory - recurses through directories
@@ -74,10 +73,7 @@ fn get_dir_objects(
     for curr in contents {
         let curr_file = curr.expect("Failed to read");
         let curr_path = curr_file.path();
-        let trunc_path = curr_path
-            .strip_prefix(root_dir.to_path_buf())
-            .unwrap()
-            .to_path_buf();
+        let trunc_path = curr_path.strip_prefix(root_dir).unwrap().to_path_buf();
         if curr_path.is_dir() {
             // I am ashamed of how this works - split path into parts, then compare against ignored
             // dirs
@@ -129,7 +125,7 @@ fn create_new_note(config: &Config, orig_note_name: String, project_path: PathBu
         println!("New note created: {}", note_name);
         note_created = true;
     }
-    return note_path;
+    note_path
 }
 
 /// Creates a new project directory
@@ -156,12 +152,12 @@ fn create_new_project(config: &Config, project_name: String) {
 /// * `full_path` - the file path to delete
 fn delete(full_path: PathBuf) -> bool {
     println!("Deleting {} ...", full_path.display());
-    let result: Result<(), std::io::Error>;
-    if full_path.is_dir() {
-        result = remove_dir_all(&full_path);
+    // let result: Result<(), std::io::Error>;
+    let result: Result<(), std::io::Error> = if full_path.is_dir() {
+        remove_dir_all(&full_path)
     } else {
-        result = remove_file(&full_path);
-    }
+        remove_file(&full_path)
+    };
     match result {
         Ok(()) => {
             println!("{} successfully deleted", full_path.display());
@@ -171,7 +167,7 @@ fn delete(full_path: PathBuf) -> bool {
         }
     }
 
-    return true;
+    true
 }
 
 fn main() {
@@ -250,7 +246,7 @@ mod tests {
             ignore_dirs: vec![],
         };
         let result: bool = detect_root_folder(&config);
-        assert_eq!(result, true)
+        assert!(result)
     }
 
     #[test]
@@ -260,6 +256,6 @@ mod tests {
             ignore_dirs: vec![],
         };
         let result: bool = detect_root_folder(&config);
-        assert_eq!(result, false)
+        assert!(!result)
     }
 }
