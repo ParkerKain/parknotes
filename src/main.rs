@@ -1,5 +1,5 @@
-use std::env;
 use std::path::PathBuf;
+use std::{env, io};
 
 use crate::core::{
     create_new_note, create_new_project, create_objects, create_root_folder, delete,
@@ -14,6 +14,7 @@ use crate::structs::{Action, Config};
 mod core;
 mod prompts;
 mod structs;
+mod tui;
 
 fn main() {
     println!("Welcome to parknotes!");
