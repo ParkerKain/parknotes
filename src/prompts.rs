@@ -19,13 +19,13 @@ pub fn prompt_for_action() -> Action {
     match ans {
         Ok(input) => {
             if input.trim() == "Create Note" {
-                return Action::CreateNote;
+                Action::CreateNote
             } else if input.trim() == "Delete Note" {
-                return Action::DeleteNote;
+                Action::DeleteNote
             } else if input.trim() == "Create Project" {
-                return Action::CreateProject;
+                Action::CreateProject
             } else if input.trim() == "Delete Project" {
-                return Action::DeleteProject;
+                Action::DeleteProject
             } else {
                 panic!("Unknown input");
             }
