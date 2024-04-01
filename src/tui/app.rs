@@ -20,13 +20,17 @@ pub enum CurrentScreen {
 
 pub struct App {
     pub current_screen: CurrentScreen,
-    exit: bool,
+    pub num_notes: u16,
+    pub num_projects: u16,
+    pub exit: bool,
 }
 
 impl App {
     pub fn new() -> App {
         App {
             current_screen: CurrentScreen::Main,
+            num_notes: 1000,
+            num_projects: 1000,
             exit: false,
         }
     }
@@ -68,13 +72,27 @@ impl App {
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let title = Title::from(" Welcome to Parknotes ");
-        let block = Block::default().title(title.alignment(ratatui::layout::Alignment::Center));
+        let block = Block::default()
+            .title(title.alignment(ratatui::layout::Alignment::Center))
+            .borders(Borders::ALL)
+            .border_set(border::THICK);
 
-        let text = Text::from(vec![Line::from(vec!["Hello: ".into()])]);
+        let lines = vec![
+            Line::from(vec![
+                "Found ".into(),
+                self.num_notes.to_string().into(),
+                " notes across ".into(),
+                self.num_projects.to_string().into(),
+                " projects!".into(),
+            ]),
+            Line::from(vec!["What would you like to do?".into()]),
+            Line::from(vec!["Create a note".into()]),
+            Line::from(vec!["Delete a note".into()]),
+            Line::from(vec!["Create a project".into()]),
+            Line::from(vec!["Delete a project".into()]),
+        ];
 
-        Paragraph::new(text)
-            .centered()
-            .block(block)
-            .render(area, buf);
+        let text = Text::from(lines);
+        Paragraph::new(text).block(block).render(area, buf);
     }
 }

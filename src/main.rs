@@ -19,40 +19,41 @@ mod tui;
 
 fn main() -> io::Result<()> {
     println!("Welcome to parknotes!");
+
+    let root_dir_result = env::var("PARKNOTES_ROOT_DIR");
+    let root_dir: String;
+    match root_dir_result {
+        Ok(dir) => root_dir = dir,
+        Err(_) => {
+            panic!("Please set PARKNOTES_ROOT_DIR environment variable.")
+        }
+    }
+
+    let config = Config {
+        root_dir: PathBuf::from(root_dir),
+        ignore_dirs: vec![String::from(".git"), String::from("bin")],
+    };
+
+    if !detect_root_folder(&config) {
+        println!(
+            "No parknotes folder detected at {}",
+            config.root_dir.display()
+        );
+        create_root_folder(&config);
+    }
+
+    let (notes, projects) = create_objects(&config);
+
+    println!(
+        "Found {} notes across {} projects!",
+        notes.len(),
+        projects.len()
+    );
+
     let app_result = setup_tui();
     restore()?;
     app_result
 
-    // let root_dir_result = env::var("PARKNOTES_ROOT_DIR");
-    // let root_dir: String;
-    // match root_dir_result {
-    //     Ok(dir) => root_dir = dir,
-    //     Err(_) => {
-    //         panic!("Please set PARKNOTES_ROOT_DIR environment variable.")
-    //     }
-    // }
-    //
-    // let config = Config {
-    //     root_dir: PathBuf::from(root_dir),
-    //     ignore_dirs: vec![String::from(".git"), String::from("bin")],
-    // };
-    //
-    // if !detect_root_folder(&config) {
-    //     println!(
-    //         "No parknotes folder detected at {}",
-    //         config.root_dir.display()
-    //     );
-    //     create_root_folder(&config);
-    // }
-    //
-    // let (notes, projects) = create_objects(&config);
-    //
-    // println!(
-    //     "Found {} notes across {} projects!",
-    //     notes.len(),
-    //     projects.len()
-    // );
-    //
     // let action = prompt_for_action();
     //
     // match action {
