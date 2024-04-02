@@ -50,7 +50,7 @@ fn main() -> io::Result<()> {
         projects.len()
     );
 
-    let app_result = setup_tui();
+    let app_result = setup_tui(&config);
     restore()?;
     app_result
 

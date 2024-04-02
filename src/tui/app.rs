@@ -8,29 +8,49 @@ use ratatui::{
     widgets::{block::*, *},
 };
 
+use crate::{core::create_objects, structs::Config};
+
 use super::tui::Tui;
 
 pub enum CurrentScreen {
     Main,
+}
+
+#[derive(Debug)]
+pub enum MainScreenOptions {
     CreatingNote,
     DeletingNote,
     CreatingProject,
     DeletingProject,
 }
 
+impl MainScreenOptions {
+    fn next(&self) -> Self {
+        match *self {
+            Self::CreatingNote => Self::DeletingNote,
+            Self::DeletingNote => Self::CreatingProject,
+            Self::CreatingProject => Self::DeletingProject,
+            Self::DeletingProject => Self::CreatingNote,
+        }
+    }
+}
+
 pub struct App {
     pub current_screen: CurrentScreen,
-    pub num_notes: u16,
-    pub num_projects: u16,
+    pub num_notes: usize,
+    pub num_projects: usize,
+    pub selected_menu_option: Option<MainScreenOptions>,
     pub exit: bool,
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new(config: &Config) -> App {
+        let (notes, projects) = create_objects(config);
         App {
             current_screen: CurrentScreen::Main,
-            num_notes: 1000,
-            num_projects: 1000,
+            num_notes: notes.len(),
+            num_projects: projects.len(),
+            selected_menu_option: Some(MainScreenOptions::CreatingNote),
             exit: false,
         }
     }
@@ -60,12 +80,19 @@ impl App {
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
+            KeyCode::Down => self.next_menu_option(),
             _ => {}
         }
     }
 
     fn exit(&mut self) {
         self.exit = true;
+    }
+
+    fn next_menu_option(&mut self) {
+        if let Some(curr) = &self.selected_menu_option {
+            self.selected_menu_option = Some(curr.next());
+        };
     }
 }
 
