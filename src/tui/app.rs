@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, slice::Iter};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
@@ -32,6 +32,25 @@ impl MainScreenOptions {
             Self::CreatingProject => Self::DeletingProject,
             Self::DeletingProject => Self::CreatingNote,
         }
+    }
+
+    fn to_string(&self) -> &str {
+        match *self {
+            Self::CreatingNote => "Create a Note",
+            Self::DeletingNote => "Delete a Note",
+            Self::CreatingProject => "Create a Project",
+            Self::DeletingProject => "Delete a Project",
+        }
+    }
+
+    fn iterator() -> Iter<'static, MainScreenOptions> {
+        static OPTIONS: [MainScreenOptions; 4] = [
+            MainScreenOptions::CreatingNote,
+            MainScreenOptions::DeletingNote,
+            MainScreenOptions::CreatingProject,
+            MainScreenOptions::DeletingProject,
+        ];
+        OPTIONS.iter()
     }
 }
 
@@ -104,7 +123,7 @@ impl Widget for &App {
             .borders(Borders::ALL)
             .border_set(border::THICK);
 
-        let lines = vec![
+        let mut lines = vec![
             Line::from(vec![
                 "Found ".into(),
                 self.num_notes.to_string().into(),
@@ -113,11 +132,12 @@ impl Widget for &App {
                 " projects!".into(),
             ]),
             Line::from(vec!["What would you like to do?".into()]),
-            Line::from(vec!["Create a note".into()]),
-            Line::from(vec!["Delete a note".into()]),
-            Line::from(vec!["Create a project".into()]),
-            Line::from(vec!["Delete a project".into()]),
         ];
+
+        for curr_option in MainScreenOptions::iterator() {
+            let new_line = Line::from(vec![curr_option.to_string().into()]);
+            lines.push(new_line);
+        }
 
         let text = Text::from(lines);
         Paragraph::new(text).block(block).render(area, buf);
