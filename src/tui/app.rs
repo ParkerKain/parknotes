@@ -1,6 +1,8 @@
+use core::num;
 use std::{io, slice::Iter};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
+use inquire::Select;
 use ratatui::{
     prelude::*,
     symbols::border,
@@ -16,7 +18,7 @@ pub enum CurrentScreen {
     Main,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MainScreenOptions {
     CreatingNote,
     DeletingNote,
@@ -115,6 +117,31 @@ impl App {
     }
 }
 
+fn create_menu_lines<'a>(
+    selected_menu_option: &'a MainScreenOptions,
+    num_notes: &'a usize,
+    num_projects: &'a usize,
+) -> Vec<Line<'a>> {
+    let mut lines = vec![
+        Line::from(vec![
+            "Found ".into(),
+            num_notes.to_string().into(),
+            " notes across ".into(),
+            num_projects.to_string().into(),
+            " projects!".into(),
+        ]),
+        Line::from(vec!["What would you like to do?".into()]),
+    ];
+    for curr_option in MainScreenOptions::iterator() {
+        let new_line = match curr_option == selected_menu_option {
+            true => Line::from(vec!["> ".into(), curr_option.to_string().into()]),
+            false => Line::from(vec![curr_option.to_string().into()]),
+        };
+        lines.push(new_line);
+    }
+    lines
+}
+
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let title = Title::from(" Welcome to Parknotes ");
@@ -123,21 +150,16 @@ impl Widget for &App {
             .borders(Borders::ALL)
             .border_set(border::THICK);
 
-        let mut lines = vec![
-            Line::from(vec![
-                "Found ".into(),
-                self.num_notes.to_string().into(),
-                " notes across ".into(),
-                self.num_projects.to_string().into(),
-                " projects!".into(),
-            ]),
-            Line::from(vec!["What would you like to do?".into()]),
-        ];
+        let selected_menu_option = self.selected_menu_option.as_ref().unwrap();
+        let lines = create_menu_lines(selected_menu_option, &self.num_notes, &self.num_projects);
 
-        for curr_option in MainScreenOptions::iterator() {
-            let new_line = Line::from(vec![curr_option.to_string().into()]);
-            lines.push(new_line);
-        }
+        // for curr_option in MainScreenOptions::iterator() {
+        //     let new_line = match curr_option {
+        //         self.selected_menu_option.as_ref()? => "hello"
+        //         _ => Line::from(vec![curr_option.to_string().into()]),
+        //     };
+        //     lines.push(new_line);
+        // }
 
         let text = Text::from(lines);
         Paragraph::new(text).block(block).render(area, buf);
