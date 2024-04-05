@@ -36,6 +36,15 @@ impl MainScreenOptions {
         }
     }
 
+    fn prev(&self) -> Self {
+        match *self {
+            Self::CreatingNote => Self::DeletingProject,
+            Self::DeletingNote => Self::CreatingNote,
+            Self::CreatingProject => Self::DeletingNote,
+            Self::DeletingProject => Self::CreatingProject,
+        }
+    }
+
     fn to_string(&self) -> &str {
         match *self {
             Self::CreatingNote => "Create a Note",
@@ -102,6 +111,7 @@ impl App {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
             KeyCode::Down => self.next_menu_option(),
+            KeyCode::Up => self.prev_menu_option(),
             _ => {}
         }
     }
@@ -113,6 +123,12 @@ impl App {
     fn next_menu_option(&mut self) {
         if let Some(curr) = &self.selected_menu_option {
             self.selected_menu_option = Some(curr.next());
+        };
+    }
+
+    fn prev_menu_option(&mut self) {
+        if let Some(curr) = &self.selected_menu_option {
+            self.selected_menu_option = Some(curr.prev());
         };
     }
 }
