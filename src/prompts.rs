@@ -147,13 +147,13 @@ pub fn prompt_for_project_name() -> String {
             .into_iter()
             .any(|curr| invalid_chars.contains(&curr))
         {
-            return Ok(Validation::Invalid(
+            Ok(Validation::Invalid(
                 "Name contains invalid character".into(),
-            ));
+            ))
         } else if name.len() == 0 {
-            return Ok(Validation::Invalid("Name is length zero".into()));
+            Ok(Validation::Invalid("Name is length zero".into()))
         } else {
-            return Ok(Validation::Valid);
+            Ok(Validation::Valid)
         }
     };
     let name = Text::new("What would you like to name this project?")
@@ -161,7 +161,7 @@ pub fn prompt_for_project_name() -> String {
         .prompt();
 
     match name {
-        Ok(name) => return name,
+        Ok(name) => name,
         Err(_) => panic!("An error happened when asking for your project, try again later."),
     }
 }

@@ -1,15 +1,8 @@
 use std::path::PathBuf;
 use std::{env, io};
 
-use crate::core::{
-    create_new_note, create_new_project, create_objects, create_root_folder, delete,
-    detect_root_folder,
-};
-use crate::prompts::{
-    confirm_delete, prompt_for_action, prompt_for_new_note_name, prompt_for_note,
-    prompt_for_project, prompt_for_project_name,
-};
-use crate::structs::{Action, Config};
+use crate::core::{create_objects, create_root_folder, detect_root_folder};
+use crate::structs::Config;
 use crate::tui::tui::{restore, setup_tui};
 
 mod core;

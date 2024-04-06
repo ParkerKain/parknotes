@@ -1,8 +1,6 @@
-use core::num;
 use std::{io, slice::Iter};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
-use inquire::Select;
 use ratatui::{
     prelude::*,
     symbols::border,
@@ -14,10 +12,13 @@ use crate::{core::create_objects, structs::Config};
 
 use super::tui::Tui;
 
+/// Defines an Enum for each screen of the app
 pub enum CurrentScreen {
     Main,
 }
 
+/// All possible selected options on the main menu
+/// TODO: If this was an vector or array or something we could more easily traverse it
 #[derive(Debug, PartialEq, Eq)]
 pub enum MainScreenOptions {
     CreatingNote,
@@ -27,6 +28,7 @@ pub enum MainScreenOptions {
 }
 
 impl MainScreenOptions {
+    /// Feels like there should be a better way but this is what I got.
     fn next(&self) -> Self {
         match *self {
             Self::CreatingNote => Self::DeletingNote,
@@ -65,15 +67,21 @@ impl MainScreenOptions {
     }
 }
 
+/// This guy defines all state within the TUI
 pub struct App {
+    /// The Screen we are on
     pub current_screen: CurrentScreen,
+    /// The number of notes and projects we see
     pub num_notes: usize,
     pub num_projects: usize,
+    /// The Main Screen option we are choosing
     pub selected_menu_option: Option<MainScreenOptions>,
+    /// If we are exiting
     pub exit: bool,
 }
 
 impl App {
+    /// Create a new App State - run at app startup
     pub fn new(config: &Config) -> App {
         let (notes, projects) = create_objects(config);
         App {
@@ -133,6 +141,8 @@ impl App {
     }
 }
 
+/// Creates the Text for the main screen
+/// Note: I am highly unconfident in my usage of lifetimes here.
 fn create_menu_lines<'a>(
     selected_menu_option: &'a MainScreenOptions,
     num_notes: &'a usize,
@@ -168,14 +178,6 @@ impl Widget for &App {
 
         let selected_menu_option = self.selected_menu_option.as_ref().unwrap();
         let lines = create_menu_lines(selected_menu_option, &self.num_notes, &self.num_projects);
-
-        // for curr_option in MainScreenOptions::iterator() {
-        //     let new_line = match curr_option {
-        //         self.selected_menu_option.as_ref()? => "hello"
-        //         _ => Line::from(vec![curr_option.to_string().into()]),
-        //     };
-        //     lines.push(new_line);
-        // }
 
         let text = Text::from(lines);
         Paragraph::new(text).block(block).render(area, buf);
