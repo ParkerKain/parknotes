@@ -15,6 +15,8 @@ use super::tui::Tui;
 /// Defines an Enum for each screen of the app
 pub enum CurrentScreen {
     Main,
+    SelectProject,
+    CreateProject,
 }
 
 /// All possible selected options on the main menu
@@ -120,6 +122,7 @@ impl App {
             KeyCode::Char('q') => self.exit(),
             KeyCode::Down => self.next_menu_option(),
             KeyCode::Up => self.prev_menu_option(),
+            KeyCode::Enter => self.exit(),
             _ => {}
         }
     }
