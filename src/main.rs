@@ -1,4 +1,5 @@
 use std::env;
+use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::{create_dir, create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::path::PathBuf;
@@ -8,9 +9,21 @@ use crate::prompts::{
     prompt_for_project, prompt_for_project_name,
 };
 use crate::structs::{Action, Config, Note, Project};
+use crate::tui::app::App;
+use crate::tui::ui::ui;
+use crossterm::event::{self, DisableMouseCapture, Event};
+use crossterm::event::{EnableMouseCapture, KeyCode};
+use crossterm::execute;
+use crossterm::terminal::{disable_raw_mode, LeaveAlternateScreen};
+use crossterm::terminal::{enable_raw_mode, EnterAlternateScreen};
+use ratatui::backend::{Backend, CrosstermBackend};
+use ratatui::Terminal;
+use std::io;
+use tui::app::CurrentScreen;
 
 mod prompts;
 mod structs;
+mod tui;
 
 /// Returns if the root dir exists already
 ///
@@ -169,69 +182,109 @@ fn delete(full_path: PathBuf) -> bool {
     true
 }
 
-fn main() {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
+    loop {
+        terminal.draw(|f| ui(f, app))?;
+        if let Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Release {
+                // Skip events that are not KeyEventKind::Press
+                continue;
+            }
+            match app.current_screen {
+                CurrentScreen::Main => match key.code {
+                    KeyCode::Char('q') => return Ok(true),
+                    _ => {}
+                },
+            }
+        }
+    }
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
     println!("Welcome to parknotes!");
 
-    let root_dir_result = env::var("PARKNOTES_ROOT_DIR");
-    let root_dir: String;
-    match root_dir_result {
-        Ok(dir) => root_dir = dir,
-        Err(_) => {
-            panic!("Please set PARKNOTES_ROOT_DIR environment variable.")
-        }
-    }
+    // setup terminal
+    enable_raw_mode()?;
+    let mut stderr = io::stderr(); // This is a special case. Normally using stdout is fine
+    execute!(stderr, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stderr);
+    let mut terminal = Terminal::new(backend)?;
 
-    let config = Config {
-        root_dir: PathBuf::from(root_dir),
-        ignore_dirs: vec![String::from(".git"), String::from("bin")],
-    };
+    // create app and run it
+    let mut app = App::new();
+    let res = run_app(&mut terminal, &mut app);
 
-    if !detect_root_folder(&config) {
-        println!(
-            "No parknotes folder detected at {}",
-            config.root_dir.display()
-        );
-        create_root_folder(&config);
-    }
+    // restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
 
-    let (notes, projects) = create_objects(&config);
+    Ok(())
 
-    println!(
-        "Found {} notes across {} projects!",
-        notes.len(),
-        projects.len()
-    );
-
-    let action = prompt_for_action();
-
-    match action {
-        Action::CreateNote => {
-            let new_note_name = prompt_for_new_note_name();
-            let new_note_project = prompt_for_project(&projects, String::from("add this note to"));
-            let note_path = create_new_note(&config, new_note_name, new_note_project);
-            let _ = std::process::Command::new("nvim")
-                .arg(&note_path.into_os_string())
-                .status();
-        }
-        Action::DeleteNote => {
-            let note_path = prompt_for_note(&notes, String::from("delete"));
-            let mut full_path = config.root_dir.clone();
-            full_path.push(&note_path);
-            confirm_delete(&note_path, &full_path);
-            delete(full_path);
-        }
-        Action::CreateProject => {
-            let project_name = prompt_for_project_name();
-            create_new_project(&config, project_name);
-        }
-        Action::DeleteProject => {
-            let project_path = prompt_for_project(&projects, String::from("delete"));
-            let mut full_path = config.root_dir.clone();
-            full_path.push(&project_path);
-            confirm_delete(&project_path, &full_path);
-            delete(full_path);
-        }
-    }
+    // let root_dir_result = env::var("PARKNOTES_ROOT_DIR");
+    // let root_dir: String;
+    // match root_dir_result {
+    //     Ok(dir) => root_dir = dir,
+    //     Err(_) => {
+    //         panic!("Please set PARKNOTES_ROOT_DIR environment variable.")
+    //     }
+    // }
+    //
+    // let config = Config {
+    //     root_dir: PathBuf::from(root_dir),
+    //     ignore_dirs: vec![String::from(".git"), String::from("bin")],
+    // };
+    //
+    // if !detect_root_folder(&config) {
+    //     println!(
+    //         "No parknotes folder detected at {}",
+    //         config.root_dir.display()
+    //     );
+    //     create_root_folder(&config);
+    // }
+    //
+    // let (notes, projects) = create_objects(&config);
+    //
+    // println!(
+    //     "Found {} notes across {} projects!",
+    //     notes.len(),
+    //     projects.len()
+    // );
+    //
+    // let action = prompt_for_action();
+    //
+    // match action {
+    //     Action::CreateNote => {
+    //         let new_note_name = prompt_for_new_note_name();
+    //         let new_note_project = prompt_for_project(&projects, String::from("add this note to"));
+    //         let note_path = create_new_note(&config, new_note_name, new_note_project);
+    //         let _ = std::process::Command::new("nvim")
+    //             .arg(&note_path.into_os_string())
+    //             .status();
+    //     }
+    //     Action::DeleteNote => {
+    //         let note_path = prompt_for_note(&notes, String::from("delete"));
+    //         let mut full_path = config.root_dir.clone();
+    //         full_path.push(&note_path);
+    //         confirm_delete(&note_path, &full_path);
+    //         delete(full_path);
+    //     }
+    //     Action::CreateProject => {
+    //         let project_name = prompt_for_project_name();
+    //         create_new_project(&config, project_name);
+    //     }
+    //     Action::DeleteProject => {
+    //         let project_path = prompt_for_project(&projects, String::from("delete"));
+    //         let mut full_path = config.root_dir.clone();
+    //         full_path.push(&project_path);
+    //         confirm_delete(&project_path, &full_path);
+    //         delete(full_path);
+    //     }
+    // }
 }
 
 #[cfg(test)]
