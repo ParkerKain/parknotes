@@ -3,7 +3,8 @@ use std::rc::Rc;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
-    widgets::{block::Title, Block, Borders},
+    text::{Line, Span},
+    widgets::{block::Title, Block, Borders, Paragraph, Wrap},
     Frame,
 };
 
@@ -41,7 +42,20 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
         .borders(Borders::ALL)
         .style(Style::default());
 
-    f.render_widget(projects_block, center_chunks[0]);
+    let projects_lines = app
+        .projects
+        .iter()
+        .map(|project| {
+            Line::from(vec![Span::styled(
+                project.trunc_path.to_string_lossy(),
+                Style::default().fg(Color::White),
+            )])
+        })
+        .collect::<Vec<Line>>();
+
+    let projects_paragraph = Paragraph::new(projects_lines).block(projects_block);
+
+    f.render_widget(projects_paragraph, center_chunks[0]);
 }
 pub fn notes_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
     let notes_block_title = Title::from(" Notes ".bold());

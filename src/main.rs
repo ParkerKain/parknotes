@@ -217,8 +217,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stderr);
     let mut terminal = Terminal::new(backend)?;
 
+    // Create our base objects
+    let root_dir_result = env::var("PARKNOTES_ROOT_DIR");
+    let root_dir: String;
+    match root_dir_result {
+        Ok(dir) => root_dir = dir,
+        Err(_) => {
+            panic!("Please set PARKNOTES_ROOT_DIR environment variable.")
+        }
+    }
+    let config = Config {
+        root_dir: PathBuf::from(root_dir),
+        ignore_dirs: vec![String::from(".git"), String::from("bin")],
+    };
+    if !detect_root_folder(&config) {
+        println!(
+            "No parknotes folder detected at {}",
+            config.root_dir.display()
+        );
+        create_root_folder(&config);
+    }
+
+    let (notes, projects) = create_objects(&config);
+
     // create app and run it
-    let mut app = App::new();
+    let mut app = App::new(notes, projects);
     let res = run_app(&mut terminal, &mut app);
 
     // restore terminal

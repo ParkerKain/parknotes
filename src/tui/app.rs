@@ -1,3 +1,5 @@
+use crate::structs::{Note, Project};
+
 #[derive(PartialEq)]
 pub enum CurrentScreen {
     Search,
@@ -8,12 +10,16 @@ pub enum CurrentScreen {
 
 pub struct App {
     pub current_screen: CurrentScreen,
+    pub notes: Vec<Note>,
+    pub projects: Vec<Project>,
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new(notes: Vec<Note>, projects: Vec<Project>) -> App {
         App {
             current_screen: CurrentScreen::Search,
+            notes,
+            projects,
         }
     }
 
