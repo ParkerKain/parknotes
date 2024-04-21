@@ -47,7 +47,7 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, project)| {
-            let style = if app.current_selected_project == Some(i) {
+            let style = if app.current_selected_project == i.try_into().unwrap() {
                 Style::default().bg(Color::White).fg(Color::Black)
             } else {
                 Style::default().fg(Color::White)

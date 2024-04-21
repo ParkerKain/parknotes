@@ -190,19 +190,41 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 // Skip events that are not KeyEventKind::Press
                 continue;
             }
-            match key.code {
-                KeyCode::Char('q') => return Ok(true),
-                KeyCode::Tab => {
-                    app.next_screen();
-                }
-                _ => {}
-            }
-            // match app.current_screen {
-            //     _ => match key.code {
-            //         KeyCode::Char('q') => return Ok(true),
-            //         _ => {}
-            //     },
+            // match key.code {
+            //     KeyCode::Char('q') => return Ok(true),
+            //     KeyCode::Tab => {
+            //         app.next_screen();
+            //     }
+            //     _ => {}
             // }
+            match app.current_screen {
+                CurrentScreen::Projects => match key.code {
+                    KeyCode::Char('q') => return Ok(true),
+                    KeyCode::Tab => app.next_screen(),
+                    KeyCode::Down => {
+                        app.current_selected_project = (app.current_selected_project + 1)
+                            % isize::try_from(app.projects.len()).unwrap();
+                    }
+                    KeyCode::Up => {
+                        let new_index = (app.current_selected_project - 1)
+                            % isize::try_from(app.projects.len()).unwrap();
+                        if new_index < 0 {
+                            app.current_selected_project =
+                                isize::try_from(app.projects.len()).unwrap();
+                        } else {
+                            app.current_selected_project = new_index
+                        }
+                    }
+                    _ => {}
+                },
+                _ => match key.code {
+                    KeyCode::Char('q') => return Ok(true),
+                    KeyCode::Tab => {
+                        app.next_screen();
+                    }
+                    _ => {}
+                },
+            }
         }
     }
 }
