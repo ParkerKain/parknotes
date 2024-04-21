@@ -12,6 +12,7 @@ pub struct App {
     pub current_screen: CurrentScreen,
     pub notes: Vec<Note>,
     pub projects: Vec<Project>,
+    pub current_selected_project: Option<usize>,
 }
 
 impl App {
@@ -20,6 +21,7 @@ impl App {
             current_screen: CurrentScreen::Search,
             notes,
             projects,
+            current_selected_project: 0.into(),
         }
     }
 

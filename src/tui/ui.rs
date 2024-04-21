@@ -45,10 +45,16 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
     let projects_lines = app
         .projects
         .iter()
-        .map(|project| {
+        .enumerate()
+        .map(|(i, project)| {
+            let style = if app.current_selected_project == Some(i) {
+                Style::default().bg(Color::White).fg(Color::Black)
+            } else {
+                Style::default().fg(Color::White)
+            };
             Line::from(vec![Span::styled(
                 project.trunc_path.to_string_lossy(),
-                Style::default().fg(Color::White),
+                style,
             )])
         })
         .collect::<Vec<Line>>();

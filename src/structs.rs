@@ -15,7 +15,7 @@ pub struct Note {
 }
 
 /// Represents a project, or really just a directory
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Project {
     pub trunc_path: PathBuf,
 }
