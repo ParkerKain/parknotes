@@ -1,10 +1,13 @@
 use std::rc::Rc;
 
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
-    widgets::{block::Title, Block, Borders, Paragraph, Wrap},
+    widgets::{
+        block::Title, Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        Wrap,
+    },
     Frame,
 };
 
@@ -58,10 +61,43 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
             )])
         })
         .collect::<Vec<Line>>();
+    let num_lines: isize = projects_lines.len().try_into().unwrap();
+    let buffer: isize = app.config.menu_scroll_buffer.try_into().unwrap();
+    let scroll_middle_cutoff: isize = (num_lines - buffer).try_into().unwrap();
 
-    let projects_paragraph = Paragraph::new(projects_lines).block(projects_block);
+    let scroll_state: u16;
+
+    if app.current_selected_project < buffer {
+        scroll_state = 0;
+    } else if (buffer <= app.current_selected_project)
+        && (app.current_selected_project <= scroll_middle_cutoff)
+    {
+        scroll_state = (app.current_selected_project - buffer).try_into().unwrap();
+    } else {
+        scroll_state = (scroll_middle_cutoff - buffer).try_into().unwrap();
+    };
+
+    let projects_paragraph = Paragraph::new(projects_lines)
+        .scroll((scroll_state, 0))
+        .block(projects_block);
+
+    let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+        .begin_symbol(Some("↑"))
+        .end_symbol(Some("↓"));
+
+    let mut scrollbar_state = ScrollbarState::new(num_lines.try_into().unwrap())
+        .position(app.current_selected_project.try_into().unwrap());
 
     f.render_widget(projects_paragraph, center_chunks[0]);
+    f.render_stateful_widget(
+        scrollbar,
+        center_chunks[0].inner(&Margin {
+            // using an inner vertical margin of 1 unit makes the scrollbar inside the block
+            vertical: 1,
+            horizontal: 0,
+        }),
+        &mut scrollbar_state,
+    );
 }
 pub fn notes_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
     let notes_block_title = Title::from(" Notes ".bold());

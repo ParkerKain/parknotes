@@ -210,7 +210,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                             % isize::try_from(app.projects.len()).unwrap();
                         if new_index < 0 {
                             app.current_selected_project =
-                                isize::try_from(app.projects.len()).unwrap();
+                                isize::try_from(app.projects.len()).unwrap() - 1;
                         } else {
                             app.current_selected_project = new_index
                         }
@@ -251,6 +251,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = Config {
         root_dir: PathBuf::from(root_dir),
         ignore_dirs: vec![String::from(".git"), String::from("bin")],
+        menu_scroll_buffer: 10,
     };
     if !detect_root_folder(&config) {
         println!(
@@ -263,7 +264,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (notes, projects) = create_objects(&config);
 
     // create app and run it
-    let mut app = App::new(notes, projects);
+    let mut app = App::new(notes, projects, config);
     let res = run_app(&mut terminal, &mut app);
 
     // restore terminal

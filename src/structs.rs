@@ -6,6 +6,8 @@ pub struct Config {
     pub root_dir: PathBuf,
     // directories to ignore
     pub ignore_dirs: Vec<String>,
+    // Controller for when the menu scroll starts
+    pub menu_scroll_buffer: u16,
 }
 
 /// Represents a single note files
