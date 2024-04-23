@@ -1,9 +1,8 @@
-use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::{create_dir, create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::path::PathBuf;
-
+use std::{env, fs};
 
 use crate::structs::{Config, Note, Project};
 use crate::tui::app::App;
@@ -97,11 +96,13 @@ fn get_dir_objects(
             if contains_ignored_dir {
                 continue;
             }
-            let curr_project = Project { trunc_path };
+            let curr_project = Project::new(trunc_path);
             projects.push(curr_project);
             get_dir_objects(&curr_path, notes, projects, root_dir, ignore_dirs);
         } else {
-            let curr_note = Note { trunc_path };
+            let curr_note = Note {
+                filename: trunc_path.file_name().unwrap().to_owned(),
+            };
             notes.push(curr_note)
         }
     }

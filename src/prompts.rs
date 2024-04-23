@@ -70,19 +70,19 @@ pub fn prompt_for_new_note_name() -> String {
 ///
 /// * `notes` - a reference to the notes vector
 /// * `action` - an action to take, only used to prompt the user
-pub fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
-    let options = notes
-        .iter()
-        .map(|note| note.trunc_path.to_str().unwrap())
-        .collect();
-    let prompt = String::from("What file would you like to ") + &action + &String::from("?");
-    let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_page_size(20).prompt();
-
-    match ans {
-        Ok(choice) => return PathBuf::from(choice.trim()),
-        Err(_) => panic!("There was an error, please try again"),
-    }
-}
+// pub fn prompt_for_note(notes: &Vec<Note>, action: String) -> PathBuf {
+//     let options = notes
+//         .iter()
+//         .map(|note| note.trunc_path.to_str().unwrap())
+//         .collect();
+//     let prompt = String::from("What file would you like to ") + &action + &String::from("?");
+//     let ans: Result<&str, InquireError> = Select::new(&prompt, options).with_page_size(20).prompt();
+//
+//     match ans {
+//         Ok(choice) => return PathBuf::from(choice.trim()),
+//         Err(_) => panic!("There was an error, please try again"),
+//     }
+// }
 
 /// Prompts the user for a note to take action on
 ///
