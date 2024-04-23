@@ -4,11 +4,8 @@ use std::ffi::OsStr;
 use std::fs::{create_dir, create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::path::PathBuf;
 
-use crate::prompts::{
-    confirm_delete, prompt_for_action, prompt_for_new_note_name, prompt_for_note,
-    prompt_for_project, prompt_for_project_name,
-};
-use crate::structs::{Action, Config, Note, Project};
+
+use crate::structs::{Config, Note, Project};
 use crate::tui::app::App;
 use crate::tui::ui::ui;
 use crossterm::event::{self, DisableMouseCapture, Event};
@@ -258,7 +255,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let mut app = App::new(notes, projects, config);
-    let res = run_app(&mut terminal, &mut app);
+    let _res = run_app(&mut terminal, &mut app);
 
     // restore terminal
     disable_raw_mode()?;

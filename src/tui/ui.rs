@@ -6,7 +6,6 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         block::Title, Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
-        Wrap,
     },
     Frame,
 };
