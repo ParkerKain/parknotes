@@ -61,9 +61,9 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
             )])
         })
         .collect::<Vec<Line>>();
-    let num_lines: isize = projects_lines.len().try_into().unwrap();
-    let buffer: isize = app.config.menu_scroll_buffer.try_into().unwrap();
-    let scroll_middle_cutoff: isize = (num_lines - buffer).try_into().unwrap();
+    let num_lines: isize = projects_lines.len() as isize;
+    let buffer: isize = app.config.menu_scroll_buffer as isize;
+    let scroll_middle_cutoff: isize = (num_lines - buffer) as isize;
 
     let scroll_state: u16;
 
@@ -72,9 +72,9 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
     } else if (buffer <= app.current_selected_project)
         && (app.current_selected_project <= scroll_middle_cutoff)
     {
-        scroll_state = (app.current_selected_project - buffer).try_into().unwrap();
+        scroll_state = (app.current_selected_project - buffer) as u16;
     } else {
-        scroll_state = (scroll_middle_cutoff - buffer).try_into().unwrap();
+        scroll_state = (scroll_middle_cutoff - buffer) as u16;
     };
 
     let projects_paragraph = Paragraph::new(projects_lines)
@@ -85,8 +85,8 @@ pub fn projects_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
         .begin_symbol(Some("↑"))
         .end_symbol(Some("↓"));
 
-    let mut scrollbar_state = ScrollbarState::new(num_lines.try_into().unwrap())
-        .position(app.current_selected_project.try_into().unwrap());
+    let mut scrollbar_state =
+        ScrollbarState::new(num_lines as usize).position(app.current_selected_project as usize);
 
     f.render_widget(projects_paragraph, center_chunks[0]);
     f.render_stateful_widget(

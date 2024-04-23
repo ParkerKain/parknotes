@@ -190,13 +190,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                 // Skip events that are not KeyEventKind::Press
                 continue;
             }
-            // match key.code {
-            //     KeyCode::Char('q') => return Ok(true),
-            //     KeyCode::Tab => {
-            //         app.next_screen();
-            //     }
-            //     _ => {}
-            // }
             match app.current_screen {
                 CurrentScreen::Projects => match key.code {
                     KeyCode::Char('q') => return Ok(true),
