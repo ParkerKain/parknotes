@@ -193,17 +193,38 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     KeyCode::Char('q') => return Ok(true),
                     KeyCode::Tab => app.next_screen(),
                     KeyCode::Down => {
-                        app.current_selected_project = (app.current_selected_project + 1)
+                        let new_index = (app.current_selected_project + 1)
                             % isize::try_from(app.projects.len()).unwrap();
+                        app.update_current_selected_project(new_index);
                     }
                     KeyCode::Up => {
                         let new_index = (app.current_selected_project - 1)
                             % isize::try_from(app.projects.len()).unwrap();
                         if new_index < 0 {
-                            app.current_selected_project =
-                                isize::try_from(app.projects.len()).unwrap() - 1;
+                            app.update_current_selected_project(
+                                isize::try_from(app.projects.len()).unwrap() - 1,
+                            );
                         } else {
-                            app.current_selected_project = new_index
+                            app.update_current_selected_project(new_index);
+                        }
+                    }
+                    _ => {}
+                },
+                CurrentScreen::Notes => match key.code {
+                    KeyCode::Char('q') => return Ok(true),
+                    KeyCode::Tab => app.next_screen(),
+                    KeyCode::Down => {
+                        app.current_selected_note = (app.current_selected_note + 1)
+                            % isize::try_from(app.projects.len()).unwrap();
+                    }
+                    KeyCode::Up => {
+                        let new_index = (app.current_selected_note - 1)
+                            % isize::try_from(app.notes.len()).unwrap();
+                        if new_index < 0 {
+                            app.current_selected_note =
+                                isize::try_from(app.notes.len()).unwrap() - 1;
+                        } else {
+                            app.current_selected_note = new_index
                         }
                     }
                     _ => {}
