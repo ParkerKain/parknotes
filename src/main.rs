@@ -2,7 +2,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::{create_dir, create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::path::PathBuf;
-use std::{env, fs};
+use std::{env, fs, usize};
 
 use crate::structs::{Config, Note, Project};
 use crate::tui::app::App;
@@ -58,6 +58,7 @@ fn create_objects(config: &Config) -> (Vec<Note>, Vec<Project>) {
         &mut projects,
         &config.root_dir,
         &config.ignore_dirs,
+        0,
     );
     (notes, projects)
 }
@@ -77,6 +78,7 @@ fn get_dir_objects(
     projects: &mut Vec<Project>,
     root_dir: &PathBuf,
     ignore_dirs: &Vec<String>,
+    project_i: usize,
 ) {
     let contents = read_dir(base).unwrap();
     for curr in contents {
@@ -98,12 +100,21 @@ fn get_dir_objects(
             }
             let curr_project = Project::new(trunc_path);
             projects.push(curr_project);
-            get_dir_objects(&curr_path, notes, projects, root_dir, ignore_dirs);
+            get_dir_objects(
+                &curr_path,
+                notes,
+                projects,
+                root_dir,
+                ignore_dirs,
+                project_i + 1,
+            );
         } else {
             let curr_note = Note {
                 filename: trunc_path.file_name().unwrap().to_owned(),
             };
-            notes.push(curr_note)
+            notes.push(curr_note);
+            let curr_len = projects.len();
+            projects[curr_len - 1].notes_indicies.push(notes.len() - 1);
         }
     }
 }
@@ -195,18 +206,27 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     KeyCode::Down => {
                         let new_index = (app.current_selected_project + 1)
                             % isize::try_from(app.projects.len()).unwrap();
-                        app.update_current_selected_project(new_index);
+                        app.current_selected_project = new_index;
+                        app.current_selected_note = app.projects
+                            [usize::try_from(app.current_selected_project).unwrap()]
+                        .notes_indicies[0]
+                            .try_into()
+                            .unwrap()
                     }
                     KeyCode::Up => {
                         let new_index = (app.current_selected_project - 1)
                             % isize::try_from(app.projects.len()).unwrap();
                         if new_index < 0 {
-                            app.update_current_selected_project(
-                                isize::try_from(app.projects.len()).unwrap() - 1,
-                            );
+                            app.current_selected_project =
+                                isize::try_from(app.projects.len()).unwrap() - 1;
                         } else {
-                            app.update_current_selected_project(new_index);
+                            app.current_selected_project = new_index;
                         }
+                        app.current_selected_note = app.projects
+                            [usize::try_from(app.current_selected_project).unwrap()]
+                        .notes_indicies[0]
+                            .try_into()
+                            .unwrap()
                     }
                     _ => {}
                 },
@@ -214,15 +234,23 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     KeyCode::Char('q') => return Ok(true),
                     KeyCode::Tab => app.next_screen(),
                     KeyCode::Down => {
+                        let curr_project_num_notes = app.projects
+                            [usize::try_from(app.current_selected_project).unwrap()]
+                        .notes_indicies
+                        .len();
                         app.current_selected_note = (app.current_selected_note + 1)
-                            % isize::try_from(app.projects.len()).unwrap();
+                            % isize::try_from(curr_project_num_notes).unwrap();
                     }
                     KeyCode::Up => {
+                        let curr_project_num_notes = app.projects
+                            [usize::try_from(app.current_selected_project).unwrap()]
+                        .notes_indicies
+                        .len();
                         let new_index = (app.current_selected_note - 1)
-                            % isize::try_from(app.notes.len()).unwrap();
+                            % isize::try_from(curr_project_num_notes).unwrap();
                         if new_index < 0 {
                             app.current_selected_note =
-                                isize::try_from(app.notes.len()).unwrap() - 1;
+                                isize::try_from(curr_project_num_notes).unwrap() - 1;
                         } else {
                             app.current_selected_note = new_index
                         }

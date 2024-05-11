@@ -20,11 +20,15 @@ pub struct Note {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Project {
     pub trunc_path: PathBuf,
+    pub notes_indicies: Vec<usize>,
 }
 
 impl Project {
     pub fn new(trunc_path: PathBuf) -> Self {
-        Project { trunc_path }
+        Project {
+            trunc_path,
+            notes_indicies: vec![],
+        }
     }
 }
 

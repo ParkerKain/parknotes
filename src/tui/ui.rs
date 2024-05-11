@@ -111,6 +111,11 @@ pub fn notes_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
         .notes
         .iter()
         .enumerate()
+        .filter(|(i, _)| {
+            app.projects[usize::try_from(app.current_selected_project).unwrap()]
+                .notes_indicies
+                .contains(i)
+        })
         .map(|(i, note)| {
             let style = if app.current_selected_note == i.try_into().unwrap() {
                 Style::default().bg(Color::White).fg(Color::Black)
