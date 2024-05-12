@@ -1,3 +1,8 @@
+use std::{
+    fs,
+    io::{BufRead, BufReader},
+};
+
 use crate::structs::{Config, Note, Project};
 
 #[derive(PartialEq)]
@@ -14,6 +19,8 @@ pub struct App {
     pub notes: Vec<Note>,
     pub current_selected_project: isize,
     pub current_selected_note: isize,
+    pub current_preview_line: isize,
+    pub current_preview_lines: Vec<String>,
     pub config: Config,
 }
 
@@ -25,9 +32,12 @@ impl App {
             notes,
             current_selected_project: 0,
             current_selected_note: 0,
+            current_preview_line: 0,
+            current_preview_lines: vec![],
             config,
         };
 
+        app.load_note(0);
         app
     }
 
@@ -38,5 +48,20 @@ impl App {
             CurrentScreen::Notes => CurrentScreen::Preview,
             CurrentScreen::Preview => CurrentScreen::Search,
         };
+    }
+
+    pub fn load_note(self: &mut App, note_i: usize) {
+        let open_note =
+            fs::File::open(self.notes[note_i].full_path.clone()).expect("Could not parse");
+
+        let note_buf = BufReader::new(open_note);
+
+        let preview_lines = note_buf
+            .lines()
+            .collect::<Result<Vec<String>, _>>()
+            .unwrap();
+
+        self.current_preview_lines = preview_lines;
+        self.current_preview_line = 0;
     }
 }

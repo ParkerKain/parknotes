@@ -14,6 +14,7 @@ pub struct Config {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Note {
     pub filename: OsString,
+    pub full_path: PathBuf,
 }
 
 /// Represents a project, or really just a directory

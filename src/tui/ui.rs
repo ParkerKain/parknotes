@@ -1,4 +1,8 @@
-use std::rc::Rc;
+use std::{
+    fs,
+    io::{BufRead, BufReader},
+    rc::Rc,
+};
 
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
@@ -173,7 +177,51 @@ pub fn preview_panel(f: &mut Frame, center_chunks: &Rc<[Rect]>, app: &App) {
         .borders(Borders::ALL)
         .style(Style::default());
 
-    f.render_widget(preview_block, center_chunks[2]);
+    let preview_lines = app
+        .current_preview_lines
+        .iter()
+        .map(|line| {
+            let style = Style::default().fg(Color::White);
+            Line::from(vec![Span::styled(line, style)])
+        })
+        .collect::<Vec<Line>>();
+
+    let num_lines: isize = preview_lines.len() as isize;
+    let buffer: isize = app.config.menu_scroll_buffer as isize;
+    let scroll_middle_cutoff: isize = (num_lines - buffer) as isize;
+
+    let scroll_state: u16;
+    if app.current_preview_line < buffer {
+        scroll_state = 0;
+    } else if (buffer <= app.current_preview_line)
+        && (app.current_preview_line <= scroll_middle_cutoff)
+    {
+        scroll_state = (app.current_preview_line - buffer) as u16;
+    } else {
+        scroll_state = (scroll_middle_cutoff - buffer) as u16;
+    };
+
+    let preview_paragraph = Paragraph::new(preview_lines)
+        .scroll((scroll_state, 0))
+        .block(preview_block);
+
+    let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+        .begin_symbol(Some("↑"))
+        .end_symbol(Some("↓"));
+
+    let mut scrollbar_state =
+        ScrollbarState::new(num_lines as usize).position(app.current_preview_line as usize);
+
+    f.render_widget(preview_paragraph, center_chunks[2]);
+    f.render_stateful_widget(
+        scrollbar,
+        center_chunks[2].inner(&Margin {
+            // using an inner vertical margin of 1 unit makes the scrollbar inside the block
+            vertical: 1,
+            horizontal: 0,
+        }),
+        &mut scrollbar_state,
+    );
 }
 
 pub fn center_panel_ui(f: &mut Frame, chunks: &Rc<[Rect]>, app: &App) {

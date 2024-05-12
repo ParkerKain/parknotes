@@ -102,6 +102,7 @@ fn get_dir_objects(
         } else {
             let curr_note = Note {
                 filename: trunc_path.file_name().unwrap().to_owned(),
+                full_path: curr_path,
             };
             notes.push(curr_note);
             let curr_len = projects.len();
@@ -209,7 +210,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                             [usize::try_from(app.current_selected_project).unwrap()]
                         .notes_indicies[0]
                             .try_into()
-                            .unwrap()
+                            .unwrap();
+                        app.load_note(usize::try_from(app.current_selected_note).unwrap());
                     }
                     KeyCode::Up => {
                         let new_index = (app.current_selected_project - 1)
@@ -224,7 +226,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                             [usize::try_from(app.current_selected_project).unwrap()]
                         .notes_indicies[0]
                             .try_into()
-                            .unwrap()
+                            .unwrap();
+                        app.load_note(usize::try_from(app.current_selected_note).unwrap());
                     }
                     _ => {}
                 },
@@ -232,25 +235,55 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                     KeyCode::Char('q') => return Ok(true),
                     KeyCode::Tab => app.next_screen(),
                     KeyCode::Down => {
-                        let curr_project_num_notes = app.projects
-                            [usize::try_from(app.current_selected_project).unwrap()]
-                        .notes_indicies
-                        .len();
-                        app.current_selected_note = (app.current_selected_note + 1)
-                            % isize::try_from(curr_project_num_notes).unwrap();
+                        let curr_project_i = usize::try_from(app.current_selected_project).unwrap();
+                        let notes_indicies = app.projects[curr_project_i].notes_indicies.clone();
+                        let next_index = (notes_indicies
+                            .iter()
+                            .position(|&i| i == usize::try_from(app.current_selected_note).unwrap())
+                            .unwrap()
+                            + 1)
+                            % notes_indicies.len();
+                        app.current_selected_note = isize::try_from(
+                            app.projects[curr_project_i].notes_indicies[next_index],
+                        )
+                        .unwrap();
+                        app.load_note(usize::try_from(app.current_selected_note).unwrap());
                     }
                     KeyCode::Up => {
-                        let curr_project_num_notes = app.projects
-                            [usize::try_from(app.current_selected_project).unwrap()]
-                        .notes_indicies
-                        .len();
-                        let new_index = (app.current_selected_note - 1)
-                            % isize::try_from(curr_project_num_notes).unwrap();
-                        if new_index < 0 {
-                            app.current_selected_note =
-                                isize::try_from(curr_project_num_notes).unwrap() - 1;
+                        let curr_project_i = usize::try_from(app.current_selected_project).unwrap();
+                        let notes_indicies = app.projects[curr_project_i].notes_indicies.clone();
+                        let curr_index = notes_indicies
+                            .iter()
+                            .position(|&i| i == usize::try_from(app.current_selected_note).unwrap())
+                            .unwrap();
+                        let prev_index;
+                        if curr_index == 0 {
+                            prev_index = notes_indicies.len() - 1;
                         } else {
-                            app.current_selected_note = new_index
+                            prev_index = curr_index - 1;
+                        }
+                        app.current_selected_note = isize::try_from(
+                            app.projects[curr_project_i].notes_indicies[prev_index],
+                        )
+                        .unwrap();
+                        app.load_note(usize::try_from(app.current_selected_note).unwrap());
+                    }
+                    _ => {}
+                },
+                CurrentScreen::Preview => match key.code {
+                    KeyCode::Char('q') => return Ok(true),
+                    KeyCode::Tab => app.next_screen(),
+                    KeyCode::Down => {
+                        app.current_preview_line = (app.current_preview_line + 1)
+                            % isize::try_from(app.current_preview_lines.len()).unwrap();
+                    }
+                    KeyCode::Up => {
+                        let new_index = app.current_preview_line - 1;
+                        if new_index < 0 {
+                            app.current_preview_line =
+                                isize::try_from(app.current_preview_lines.len()).unwrap() - 1;
+                        } else {
+                            app.current_selected_note = new_index;
                         }
                     }
                     _ => {}
@@ -300,6 +333,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let (notes, projects) = create_objects(&config);
+    // println!("{:?}", notes);
 
     // create app and run it
     let mut app = App::new(notes, projects, config);
