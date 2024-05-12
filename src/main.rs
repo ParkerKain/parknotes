@@ -58,7 +58,6 @@ fn create_objects(config: &Config) -> (Vec<Note>, Vec<Project>) {
         &mut projects,
         &config.root_dir,
         &config.ignore_dirs,
-        0,
     );
     (notes, projects)
 }
@@ -78,9 +77,10 @@ fn get_dir_objects(
     projects: &mut Vec<Project>,
     root_dir: &PathBuf,
     ignore_dirs: &Vec<String>,
-    project_i: usize,
 ) {
     let contents = read_dir(base).unwrap();
+    let mut dirs_to_visit = vec![];
+
     for curr in contents {
         let curr_file = curr.expect("Failed to read");
         let curr_path = curr_file.path();
@@ -98,16 +98,7 @@ fn get_dir_objects(
             if contains_ignored_dir {
                 continue;
             }
-            let curr_project = Project::new(trunc_path);
-            projects.push(curr_project);
-            get_dir_objects(
-                &curr_path,
-                notes,
-                projects,
-                root_dir,
-                ignore_dirs,
-                project_i + 1,
-            );
+            dirs_to_visit.push(curr_path);
         } else {
             let curr_note = Note {
                 filename: trunc_path.file_name().unwrap().to_owned(),
@@ -116,6 +107,13 @@ fn get_dir_objects(
             let curr_len = projects.len();
             projects[curr_len - 1].notes_indicies.push(notes.len() - 1);
         }
+    }
+
+    for curr_path in &dirs_to_visit {
+        let trunc_path = curr_path.strip_prefix(root_dir).unwrap().to_path_buf();
+        let curr_project = Project::new(PathBuf::from(trunc_path));
+        projects.push(curr_project);
+        get_dir_objects(&curr_path, notes, projects, root_dir, ignore_dirs);
     }
 }
 
